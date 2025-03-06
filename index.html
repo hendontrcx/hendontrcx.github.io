@@ -12,6 +12,7 @@
       user-select: none;
       -webkit-user-select: none;
       -webkit-touch-callout: none;
+      touch-action: manipulation;
     }
     
     body {
@@ -22,6 +23,18 @@
       width: 100%;
       height: 100%;
       position: fixed;
+    }
+    
+    #debug-info {
+      position: fixed;
+      top: 5px;
+      left: 5px;
+      background: rgba(0,0,0,0.7);
+      padding: 5px;
+      font-size: 12px;
+      z-index: 9999;
+      max-width: 80%;
+      word-wrap: break-word;
     }
     
     .game-container {
@@ -65,6 +78,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background-color 0.3s;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .play-button:hover {
@@ -81,6 +95,8 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background-color 0.3s;
+      margin-top: 20px;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .difficulty-button:hover {
@@ -96,6 +112,7 @@
       background-color: #1f2937;
       border-radius: 8px;
       overflow: hidden;
+      z-index: 11;
     }
     
     .difficulty-option {
@@ -106,6 +123,7 @@
       background: none;
       border: none;
       cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .difficulty-option:hover {
@@ -228,6 +246,7 @@
       border-radius: 8px;
       cursor: pointer;
       transition: background-color 0.3s;
+      -webkit-tap-highlight-color: transparent;
     }
     
     .end-button:hover {
@@ -235,7 +254,7 @@
     }
     
     .hidden {
-      display: none;
+      display: none !important;
     }
     
     .explosion {
@@ -316,16 +335,11 @@
         width: 150px;
         height: 150px;
       }
-
-      .play-button, .difficulty-button, .difficulty-option, .end-button {
-        cursor: pointer;
-        -webkit-tap-highlight-color: transparent;
-        touch-action: manipulation;
-      }
     }
   </style>
 </head>
 <body>
+  <div id="debug-info"></div>
   <div class="game-container" id="game-container">
     <div class="space-background" id="space-background"></div>
     
@@ -375,6 +389,28 @@
   </div>
 
   <script>
+    // Отладочная информация
+    const debugInfo = document.getElementById('debug-info');
+    function log(message) {
+      if (debugInfo) {
+        debugInfo.innerHTML += message + '<br>';
+        // Ограничиваем количество строк
+        const lines = debugInfo.innerHTML.split('<br>');
+        if (lines.length > 10) {
+          debugInfo.innerHTML = lines.slice(lines.length - 10).join('<br>');
+        }
+      }
+      console.log(message);
+    }
+    
+    // Обработка ошибок
+    window.onerror = function(message, source, lineno, colno, error) {
+      log(`Ошибка: ${message} (${source}:${lineno}:${colno})`);
+      return false;
+    };
+    
+    log('Инициализация игры...');
+    
     const gameState = {
       state: 'start',
       difficulty: 'easy',
@@ -469,7 +505,7 @@
     const okButton = document.getElementById('ok-button');
 
     function checkMobile() {
-      return window.matchMedia("(max-width: 768px)").matches;
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.matchMedia("(max-width: 768px)").matches;
     }
 
     function getImagePath(filename) {
@@ -477,727 +513,791 @@
     }
 
     function preloadImages() {
-      const bgImg = new Image();
-      bgImg.src = getImagePath(images.spaceBackground);
-      bgImg.onload = () => {
-        spaceBackground.style.backgroundImage = `url('${getImagePath(images.spaceBackground)}')`;
-      };
-      bgImg.onerror = () => console.error('Failed to load background image:', getImagePath(images.spaceBackground));
-
-      images.rocket.forEach((src, index) => {
-        const img = new Image();
-        img.src = getImagePath(src);
-        rocketSprites[index] = img;
-        
-        img.onload = () => {
-          gameState.rocket.spritesLoaded[index] = true;
+      log('Загрузка изображений...');
+      
+      try {
+        const bgImg = new Image();
+        bgImg.src = getImagePath(images.spaceBackground);
+        bgImg.onload = () => {
+          log('Фон загружен');
+          spaceBackground.style.backgroundImage = `url('${getImagePath(images.spaceBackground)}')`;
         };
-        img.onerror = () => console.error(`Failed to load rocket sprite ${index + 1}:`, getImagePath(src));
-      });
+        bgImg.onerror = (e) => {
+          log(`Ошибка загрузки фона: ${e.message || 'неизвестная ошибка'}`);
+        };
 
-      images.asteroids.forEach((src, index) => {
-        const img = new Image();
-        img.src = getImagePath(src);
-      });
+        images.rocket.forEach((src, index) => {
+          const img = new Image();
+          img.src = getImagePath(src);
+          rocketSprites[index] = img;
+          
+          img.onload = () => {
+            log(`Спрайт ракеты ${index + 1} загружен`);
+            gameState.rocket.spritesLoaded[index] = true;
+          };
+          img.onerror = (e) => {
+            log(`Ошибка загрузки спрайта ракеты ${index + 1}: ${e.message || 'неизвестная ошибка'}`);
+          };
+        });
 
-      const moonImg = new Image();
-      moonImg.src = getImagePath(images.moon);
+        images.asteroids.forEach((src, index) => {
+          const img = new Image();
+          img.src = getImagePath(src);
+          img.onload = () => log(`Астероид ${index + 1} загружен`);
+          img.onerror = (e) => {
+            log(`Ошибка загрузки астероида ${index + 1}: ${e.message || 'неизвестная ошибка'}`);
+          };
+        });
 
-      const moonIconImg = new Image();
-      moonIconImg.src = getImagePath(images.moonIcon);
-      moonIconImg.onload = () => {
-        moonIcon.style.backgroundImage = `url('${getImagePath(images.moonIcon)}')`;
-      };
+        const moonImg = new Image();
+        moonImg.src = getImagePath(images.moon);
+        moonImg.onload = () => log('Луна загружена');
+        moonImg.onerror = (e) => {
+          log(`Ошибка загрузки луны: ${e.message || 'неизвестная ошибка'}`);
+        };
 
-      const explosionImg = new Image();
-      explosionImg.src = getImagePath(images.explosion);
+        const moonIconImg = new Image();
+        moonIconImg.src = getImagePath(images.moonIcon);
+        moonIconImg.onload = () => {
+          log('Иконка луны загружена');
+          moonIcon.style.backgroundImage = `url('${getImagePath(images.moonIcon)}')`;
+        };
+        moonIconImg.onerror = (e) => {
+          log(`Ошибка загрузки иконки луны: ${e.message || 'неизвестная ошибка'}`);
+        };
+
+        const explosionImg = new Image();
+        explosionImg.src = getImagePath(images.explosion);
+        explosionImg.onload = () => log('Взрыв загружен');
+        explosionImg.onerror = (e) => {
+          log(`Ошибка загрузки взрыва: ${e.message || 'неизвестная ошибка'}`);
+        };
+      } catch (error) {
+        log(`Ошибка при загрузке изображений: ${error.message}`);
+      }
     }
 
     function init() {
-      gameState.isMobile = checkMobile();
-      
-      preloadImages();
-      
-      // Добавляем обработчики для сенсорных устройств на кнопки
-      playButton.addEventListener('click', handlePlayClick);
-      playButton.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        handlePlayClick();
-      });
-      
-      difficultyButton.addEventListener('click', toggleDifficultyMenu);
-      difficultyButton.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        toggleDifficultyMenu();
-      });
-      
-      difficultyOptions.forEach(option => {
-        option.addEventListener('click', handleDifficultySelect);
-        option.addEventListener('touchend', function(e) {
-          e.preventDefault();
-          handleDifficultySelect(e);
+      try {
+        gameState.isMobile = checkMobile();
+        log(`Устройство определено как ${gameState.isMobile ? 'мобильное' : 'десктоп'}`);
+        
+        preloadImages();
+        
+        // Упрощенные обработчики событий
+        function handlePlayButtonClick() {
+          log('Кнопка "Играть" нажата');
+          playButton.style.display = 'none';
+          difficultyContainer.style.display = 'block';
+        }
+        
+        function handleDifficultyButtonClick() {
+          log('Кнопка выбора сложности нажата');
+          const isVisible = difficultyMenu.style.display === 'block';
+          difficultyMenu.style.display = isVisible ? 'none' : 'block';
+        }
+        
+        function handleDifficultyOptionClick(e) {
+          const difficulty = e.target.dataset.difficulty;
+          log(`Выбрана сложность: ${difficulty}`);
+          
+          gameState.difficulty = difficulty;
+          gameState.specialAsteroidsRemaining = specialAsteroidCounts[difficulty];
+          
+          difficultyDisplay.textContent = e.target.textContent;
+          
+          difficultyMenu.style.display = 'none';
+          startScreen.classList.add('hidden');
+          
+          gameUI.classList.remove('hidden');
+          
+          rocketElement.classList.remove('hidden');
+          updateRocketPosition();
+          
+          if (rocketSprites[0] && rocketSprites[0].complete) {
+            rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
+          } else {
+            rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
+          }
+          
+          startGame();
+        }
+        
+        function handleRestartButtonClick() {
+          log('Кнопка "Заново" нажата');
+          resetGame();
+        }
+        
+        // Добавляем обработчики для всех устройств
+        playButton.addEventListener('click', handlePlayButtonClick);
+        difficultyButton.addEventListener('click', handleDifficultyButtonClick);
+        
+        difficultyOptions.forEach(option => {
+          option.addEventListener('click', handleDifficultyOptionClick);
         });
-      });
-      
-      restartButton.addEventListener('click', resetGame);
-      restartButton.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        resetGame();
-      });
-      
-      okButton.addEventListener('click', resetGame);
-      okButton.addEventListener('touchend', function(e) {
-        e.preventDefault();
-        resetGame();
-      });
-      
-      if (gameState.isMobile) {
-        document.addEventListener('touchstart', handleTouchStart, { passive: false });
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleTouchEnd);
-      } else {
-        document.addEventListener('mousedown', handleMouseDown);
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mouseup', handleMouseUp);
+        
+        restartButton.addEventListener('click', handleRestartButtonClick);
+        okButton.addEventListener('click', handleRestartButtonClick);
+        
+        // Обработчики для перетаскивания ракеты
+        if (gameState.isMobile) {
+          log('Настройка обработчиков касания');
+          
+          // Для мобильных устройств
+          rocketElement.addEventListener('touchstart', function(e) {
+            if (!gameState.isCollided && (gameState.state === 'playing' || gameState.state === 'landing')) {
+              gameState.isDragging = true;
+              e.preventDefault();
+              log('Начато перетаскивание ракеты (касание)');
+            }
+          });
+          
+          document.addEventListener('touchmove', function(e) {
+            if (gameState.isDragging && !gameState.isCollided) {
+              e.preventDefault();
+              const touch = e.touches[0];
+              const { left, top } = gameContainer.getBoundingClientRect();
+              
+              if (gameState.isMobile) {
+                const newX = touch.clientX - left - gameState.rocket.width / 2;
+                const maxX = gameContainer.clientWidth - gameState.rocket.width;
+                const clampedX = Math.max(0, Math.min(newX, maxX));
+                
+                gameState.rocket.x = clampedX;
+                rocketElement.style.left = `${clampedX}px`;
+              } else {
+                const newY = touch.clientY - top - gameState.rocket.height / 2;
+                const maxY = gameContainer.clientHeight - gameState.rocket.height;
+                const clampedY = Math.max(0, Math.min(newY, maxY));
+                
+                gameState.rocket.y = clampedY;
+                rocketElement.style.top = `${clampedY}px`;
+              }
+            }
+          });
+          
+          document.addEventListener('touchend', function() {
+            if (gameState.isDragging) {
+              gameState.isDragging = false;
+              log('Завершено перетаскивание ракеты (касание)');
+            }
+          });
+        } else {
+          log('Настройка обработчиков мыши');
+          
+          // Для ПК
+          rocketElement.addEventListener('mousedown', function(e) {
+            if (!gameState.isCollided && (gameState.state === 'playing' || gameState.state === 'landing')) {
+              gameState.isDragging = true;
+              log('Начато перетаскивание ракеты (мышь)');
+            }
+          });
+          
+          document.addEventListener('mousemove', function(e) {
+            if (gameState.isDragging && !gameState.isCollided) {
+              const { left, top } = gameContainer.getBoundingClientRect();
+              
+              if (gameState.isMobile) {
+                const newX = e.clientX - left - gameState.rocket.width / 2;
+                const maxX = gameContainer.clientWidth - gameState.rocket.width;
+                const clampedX = Math.max(0, Math.min(newX, maxX));
+                
+                gameState.rocket.x = clampedX;
+                rocketElement.style.left = `${clampedX}px`;
+              } else {
+                const newY = e.clientY - top - gameState.rocket.height / 2;
+                const maxY = gameContainer.clientHeight - gameState.rocket.height;
+                const clampedY = Math.max(0, Math.min(newY, maxY));
+                
+                gameState.rocket.y = clampedY;
+                rocketElement.style.top = `${clampedY}px`;
+              }
+            }
+          });
+          
+          document.addEventListener('mouseup', function() {
+            if (gameState.isDragging) {
+              gameState.isDragging = false;
+              log('Завершено перетаскивание ракеты (мышь)');
+            }
+          });
+        }
+        
+        window.addEventListener('resize', handleResize);
+        
+        positionRocketInitially();
+        
+        animateBackground();
+        
+        log('Инициализация завершена');
+      } catch (error) {
+        log(`Ошибка при инициализации: ${error.message}`);
       }
-      
-      window.addEventListener('resize', handleResize);
-      
-      positionRocketInitially();
-      
-      animateBackground();
     }
 
     function positionRocketInitially() {
-      const { width, height } = gameContainer.getBoundingClientRect();
-      
-      if (gameState.isMobile) {
-        gameState.rocket.width = 150;
-        gameState.rocket.height = 300;
-        gameState.rocket.x = width / 2 - gameState.rocket.width / 2;
-        gameState.rocket.y = height - gameState.rocket.height - 50;
-      } else {
-        gameState.rocket.width = 300;
-        gameState.rocket.height = 150;
-        gameState.rocket.y = height / 2 - gameState.rocket.height / 2;
-        gameState.rocket.x = 100;
+      try {
+        const { width, height } = gameContainer.getBoundingClientRect();
+        
+        if (gameState.isMobile) {
+          gameState.rocket.width = 150;
+          gameState.rocket.height = 300;
+          gameState.rocket.x = width / 2 - gameState.rocket.width / 2;
+          gameState.rocket.y = height - gameState.rocket.height - 50;
+        } else {
+          gameState.rocket.width = 300;
+          gameState.rocket.height = 150;
+          gameState.rocket.y = height / 2 - gameState.rocket.height / 2;
+          gameState.rocket.x = 100;
+        }
+        
+        log(`Начальная позиция ракеты: x=${gameState.rocket.x}, y=${gameState.rocket.y}`);
+      } catch (error) {
+        log(`Ошибка при позиционировании ракеты: ${error.message}`);
       }
     }
 
     function handleResize() {
-      const wasMobile = gameState.isMobile;
-      gameState.isMobile = checkMobile();
-      
-      if (wasMobile !== gameState.isMobile) {
-        positionRocketInitially();
+      try {
+        const wasMobile = gameState.isMobile;
+        gameState.isMobile = checkMobile();
         
-        if (gameState.state === 'playing' || gameState.state === 'landing') {
-          updateRocketPosition();
+        log(`Изменение размера окна: ${wasMobile ? 'мобильное' : 'десктоп'} -> ${gameState.isMobile ? 'мобильное' : 'десктоп'}`);
+        
+        if (wasMobile !== gameState.isMobile) {
+          positionRocketInitially();
+          
+          if (gameState.state === 'playing' || gameState.state === 'landing') {
+            updateRocketPosition();
+          }
         }
+      } catch (error) {
+        log(`Ошибка при изменении размера: ${error.message}`);
       }
     }
 
     function updateRocketPosition() {
-      rocketElement.style.left = `${gameState.rocket.x}px`;
-      rocketElement.style.top = `${gameState.rocket.y}px`;
-      
-      if (gameState.isMobile) {
-        rocketElement.style.width = `${gameState.rocket.width}px`;
-        rocketElement.style.height = `${gameState.rocket.height}px`;
-      } else {
-        rocketElement.style.width = `${gameState.rocket.width}px`;
-        rocketElement.style.height = `${gameState.rocket.height}px`;
+      try {
+        rocketElement.style.left = `${gameState.rocket.x}px`;
+        rocketElement.style.top = `${gameState.rocket.y}px`;
+        
+        if (gameState.isMobile) {
+          rocketElement.style.width = `${gameState.rocket.width}px`;
+          rocketElement.style.height = `${gameState.rocket.height}px`;
+        } else {
+          rocketElement.style.width = `${gameState.rocket.width}px`;
+          rocketElement.style.height = `${gameState.rocket.height}px`;
+        }
+        
+        log(`Обновлена позиция ракеты: x=${gameState.rocket.x}, y=${gameState.rocket.y}`);
+      } catch (error) {
+        log(`Ошибка при обновлении позиции ракеты: ${error.message}`);
       }
-    }
-
-    function handlePlayClick() {
-      playButton.style.display = 'none';
-      difficultyContainer.style.display = 'block';
-    }
-
-    function toggleDifficultyMenu() {
-      const isVisible = difficultyMenu.style.display === 'block';
-      difficultyMenu.style.display = isVisible ? 'none' : 'block';
-    }
-
-    function handleDifficultySelect(e) {
-      const difficulty = e.target.dataset.difficulty;
-      gameState.difficulty = difficulty;
-      
-      gameState.specialAsteroidsRemaining = specialAsteroidCounts[difficulty];
-      
-      difficultyDisplay.textContent = e.target.textContent;
-      
-      difficultyMenu.style.display = 'none';
-      startScreen.classList.add('hidden');
-      
-      gameUI.classList.remove('hidden');
-      
-      rocketElement.classList.remove('hidden');
-      updateRocketPosition();
-      
-      if (rocketSprites[0] && rocketSprites[0].complete) {
-        rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
-      } else {
-        rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
-      }
-      
-      startGame();
     }
 
     function startGame() {
-      gameState.state = 'playing';
-      gameState.timeElapsed = 0;
-      gameState.timeRemaining = 60;
-      gameState.asteroids = [];
-      gameState.specialAsteroids = [];
-      gameState.isCollided = false;
-      gameState.showMoon = false;
-      gameState.isLanding = false;
-      gameState.lastSpecialAsteroidTime = 0;
-      
-      if (!gameState.rocketAnimationActive && 
-          gameState.rocket.spritesLoaded.every(loaded => loaded)) {
-        gameState.rocketAnimationActive = true;
-        animateRocketSprite();
-      }
-      
-      gameState.gameTimer = setInterval(() => {
-        gameState.timeElapsed++;
-        gameState.timeRemaining--;
+      try {
+        log('Игра запущена');
+        gameState.state = 'playing';
+        gameState.timeElapsed = 0;
+        gameState.timeRemaining = 60;
+        gameState.asteroids = [];
+        gameState.specialAsteroids = [];
+        gameState.isCollided = false;
+        gameState.showMoon = false;
+        gameState.isLanding = false;
+        gameState.lastSpecialAsteroidTime = 0;
         
-        progressFill.style.width = `${(gameState.timeRemaining / 60) * 100}%`;
-        
-        if (gameState.timeElapsed >= 55 && !gameState.showMoon) {
-          gameState.showMoon = true;
-          prepareMoonLanding();
+        if (!gameState.rocketAnimationActive && 
+            gameState.rocket.spritesLoaded.every(loaded => loaded)) {
+          gameState.rocketAnimationActive = true;
+          animateRocketSprite();
         }
         
-        if (gameState.timeElapsed >= 60 && !gameState.isLanding) {
-          startLanding();
-        }
-        
-        if (gameState.timeElapsed >= 5 && 
-            gameState.specialAsteroidsRemaining > 0 && 
-            gameState.timeElapsed - gameState.lastSpecialAsteroidTime >= 3 && 
-            Math.random() < 0.15) {
-          generateSpecialAsteroid();
-          gameState.lastSpecialAsteroidTime = gameState.timeElapsed;
-          gameState.specialAsteroidsRemaining--;
-        }
-        
-      }, 1000);
-      
-      setTimeout(() => {
-        const asteroidInterval = setInterval(() => {
-          if (gameState.state === 'playing' || gameState.state === 'landing') {
-            generateAsteroid();
-          } else {
-            clearInterval(asteroidInterval);
+        gameState.gameTimer = setInterval(() => {
+          gameState.timeElapsed++;
+          gameState.timeRemaining--;
+          
+          progressFill.style.width = `${(gameState.timeRemaining / 60) * 100}%`;
+          
+          if (gameState.timeElapsed >= 55 && !gameState.showMoon) {
+            gameState.showMoon = true;
+            prepareMoonLanding();
           }
-        }, 800);
-      }, 3000);
-      
-      gameLoop(0);
+          
+          if (gameState.timeElapsed >= 60 && !gameState.isLanding) {
+            startLanding();
+          }
+          
+          if (gameState.timeElapsed >= 5 && 
+              gameState.specialAsteroidsRemaining > 0 && 
+              gameState.timeElapsed - gameState.lastSpecialAsteroidTime >= 3 && 
+              Math.random() < 0.15) {
+            generateSpecialAsteroid();
+            gameState.lastSpecialAsteroidTime = gameState.timeElapsed;
+            gameState.specialAsteroidsRemaining--;
+          }
+          
+        }, 1000);
+        
+        setTimeout(() => {
+          const asteroidInterval = setInterval(() => {
+            if (gameState.state === 'playing' || gameState.state === 'landing') {
+              generateAsteroid();
+            } else {
+              clearInterval(asteroidInterval);
+            }
+          }, 800);
+        }, 3000);
+        
+        gameLoop(0);
+      } catch (error) {
+        log(`Ошибка при запуске игры: ${error.message}`);
+      }
     }
 
     function prepareMoonLanding() {
-      const { width, height } = gameContainer.getBoundingClientRect();
-      
-      if (gameState.isMobile) {
-        moonElement.style.width = '150px';
-        moonElement.style.height = '150px';
+      try {
+        log('Подготовка к посадке на луну');
+        const { width, height } = gameContainer.getBoundingClientRect();
         
-        gameState.moonPosition = {
-          x: width / 2 - 75,
-          y: -150
-        };
-      } else {
-        moonElement.style.width = '200px';
-        moonElement.style.height = '200px';
+        if (gameState.isMobile) {
+          moonElement.style.width = '150px';
+          moonElement.style.height = '150px';
+          
+          gameState.moonPosition = {
+            x: width / 2 - 75,
+            y: -150
+          };
+        } else {
+          moonElement.style.width = '200px';
+          moonElement.style.height = '200px';
+          
+          gameState.moonPosition = {
+            x: width + 100,
+            y: gameState.rocket.y
+          };
+        }
         
-        gameState.moonPosition = {
-          x: width + 100,
-          y: gameState.rocket.y
-        };
+        moonElement.classList.remove('hidden');
+        moonElement.style.backgroundImage = `url('${getImagePath(images.moon)}')`;
+        moonElement.style.left = `${gameState.moonPosition.x}px`;
+        moonElement.style.top = `${gameState.moonPosition.y}px`;
+      } catch (error) {
+        log(`Ошибка при подготовке к посадке: ${error.message}`);
       }
-      
-      moonElement.classList.remove('hidden');
-      moonElement.style.backgroundImage = `url('${getImagePath(images.moon)}')`;
-      moonElement.style.left = `${gameState.moonPosition.x}px`;
-      moonElement.style.top = `${gameState.moonPosition.y}px`;
     }
 
     function startLanding() {
-      gameState.state = 'landing';
-      gameState.isLanding = true;
-      
-      clearInterval(gameState.gameTimer);
+      try {
+        log('Начало посадки');
+        gameState.state = 'landing';
+        gameState.isLanding = true;
+        
+        clearInterval(gameState.gameTimer);
+      } catch (error) {
+        log(`Ошибка при начале посадки: ${error.message}`);
+      }
     }
 
     function animateRocketSprite() {
-      if ((gameState.state !== 'playing' && gameState.state !== 'landing') || 
-          gameState.isCollided || 
-          !gameState.rocketAnimationActive) {
-        return;
-      }
-      
-      if (gameState.rocket.spritesLoaded.every(loaded => loaded)) {
-        gameState.rocket.spriteIndex = (gameState.rocket.spriteIndex + 1) % rocketSprites.length;
-        
-        if (rocketSprites[gameState.rocket.spriteIndex] && rocketSprites[gameState.rocket.spriteIndex].complete) {
-          rocketElement.style.backgroundImage = `url('${rocketSprites[gameState.rocket.spriteIndex].src}')`;
+      try {
+        if ((gameState.state !== 'playing' && gameState.state !== 'landing') || 
+            gameState.isCollided || 
+            !gameState.rocketAnimationActive) {
+          return;
         }
         
-        setTimeout(animateRocketSprite, 300);
-      } else {
-        setTimeout(animateRocketSprite, 100);
+        if (gameState.rocket.spritesLoaded.every(loaded => loaded)) {
+          gameState.rocket.spriteIndex = (gameState.rocket.spriteIndex + 1) % rocketSprites.length;
+          
+          if (rocketSprites[gameState.rocket.spriteIndex] && rocketSprites[gameState.rocket.spriteIndex].complete) {
+            rocketElement.style.backgroundImage = `url('${rocketSprites[gameState.rocket.spriteIndex].src}')`;
+          }
+          
+          setTimeout(animateRocketSprite, 300);
+        } else {
+          setTimeout(animateRocketSprite, 100);
+        }
+      } catch (error) {
+        log(`Ошибка при анимации ракеты: ${error.message}`);
       }
     }
 
     function generateAsteroid() {
-      const { width, height } = gameContainer.getBoundingClientRect();
-      
-      const settings = difficultySettings[gameState.difficulty];
-      const rand = Math.random() * 100;
-      
-      let speed;
-      let rotationSpeed;
-      
-      if (rand < settings.medium) {
-        speed = asteroidSpeeds.medium;
-        rotationSpeed = 1;
-      } else if (rand < settings.medium + settings.fast) {
-        speed = asteroidSpeeds.fast;
-        rotationSpeed = 2;
-      } else if (rand < settings.medium + settings.fast + settings.veryFast) {
-        speed = asteroidSpeeds.veryFast;
-        rotationSpeed = 3;
-      } else {
-        speed = asteroidSpeeds.superFast;
-        rotationSpeed = 4;
+      try {
+        const { width, height } = gameContainer.getBoundingClientRect();
+        
+        const settings = difficultySettings[gameState.difficulty];
+        const rand = Math.random() * 100;
+        
+        let speed;
+        let rotationSpeed;
+        
+        if (rand < settings.medium) {
+          speed = asteroidSpeeds.medium;
+          rotationSpeed = 1;
+        } else if (rand < settings.medium + settings.fast) {
+          speed = asteroidSpeeds.fast;
+          rotationSpeed = 2;
+        } else if (rand < settings.medium + settings.fast + settings.veryFast) {
+          speed = asteroidSpeeds.veryFast;
+          rotationSpeed = 3;
+        } else {
+          speed = asteroidSpeeds.superFast;
+          rotationSpeed = 4;
+        }
+        
+        const size = 30 + Math.random() * 30;
+        
+        const type = Math.floor(Math.random() * images.asteroids.length);
+        
+        let asteroid;
+        
+        if (gameState.isMobile) {
+          asteroid = {
+            id: gameState.asteroidId++,
+            x: Math.random() * (width - size),
+            y: -size,
+            width: size,
+            height: size,
+            rotation: Math.random() * 360,
+            speed,
+            rotationSpeed,
+            type,
+            isSpecial: false
+          };
+        } else {
+          asteroid = {
+            id: gameState.asteroidId++,
+            x: width + size,
+            y: Math.random() * (height - size),
+            width: size,
+            height: size,
+            rotation: Math.random() * 360,
+            speed,
+            rotationSpeed,
+            type,
+            isSpecial: false
+          };
+        }
+        
+        gameState.asteroids.push(asteroid);
+        
+        const asteroidElement = document.createElement('div');
+        asteroidElement.className = 'asteroid';
+        asteroidElement.id = `asteroid-${asteroid.id}`;
+        asteroidElement.style.width = `${asteroid.width}px`;
+        asteroidElement.style.height = `${asteroid.height}px`;
+        asteroidElement.style.left = `${asteroid.x}px`;
+        asteroidElement.style.top = `${asteroid.y}px`;
+        asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+        asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        gameContainer.appendChild(asteroidElement);
+      } catch (error) {
+        log(`Ошибка при генерации астероида: ${error.message}`);
       }
-      
-      const size = 30 + Math.random() * 30;
-      
-      const type = Math.floor(Math.random() * images.asteroids.length);
-      
-      let asteroid;
-      
-      if (gameState.isMobile) {
-        asteroid = {
-          id: gameState.asteroidId++,
-          x: Math.random() * (width - size),
-          y: -size,
-          width: size,
-          height: size,
-          rotation: Math.random() * 360,
-          speed,
-          rotationSpeed,
-          type,
-          isSpecial: false
-        };
-      } else {
-        asteroid = {
-          id: gameState.asteroidId++,
-          x: width + size,
-          y: Math.random() * (height - size),
-          width: size,
-          height: size,
-          rotation: Math.random() * 360,
-          speed,
-          rotationSpeed,
-          type,
-          isSpecial: false
-        };
-      }
-      
-      gameState.asteroids.push(asteroid);
-      
-      const asteroidElement = document.createElement('div');
-      asteroidElement.className = 'asteroid';
-      asteroidElement.id = `asteroid-${asteroid.id}`;
-      asteroidElement.style.width = `${asteroid.width}px`;
-      asteroidElement.style.height = `${asteroid.height}px`;
-      asteroidElement.style.left = `${asteroid.x}px`;
-      asteroidElement.style.top = `${asteroid.y}px`;
-      asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
-      asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
-      
-      gameContainer.appendChild(asteroidElement);
     }
 
     function generateSpecialAsteroid() {
-      const { width, height } = gameContainer.getBoundingClientRect();
-      
-      // Для тяжелого уровня используем супербыструю скорость, для остальных - очень быструю
-      const speed = gameState.difficulty === 'hard' ? asteroidSpeeds.superFast : asteroidSpeeds.veryFast;
-      const rotationSpeed = gameState.difficulty === 'hard' ? 4 : 3;
-      
-      const baseSize = 30 + Math.random() * 30;
-      const size = baseSize * 3.5;
-      
-      const type = Math.floor(Math.random() * images.asteroids.length);
-      
-      let specialAsteroid;
-      
-      if (gameState.isMobile) {
-        specialAsteroid = {
-          id: gameState.specialAsteroidId++,
-          x: Math.random() * (width - size),
-          y: -size,
-          width: size,
-          height: size,
-          rotation: Math.random() * 360,
-          speed,
-          rotationSpeed,
-          type,
-          isSpecial: true
-        };
-      } else {
-        specialAsteroid = {
-          id: gameState.specialAsteroidId++,
-          x: width + size,
-          y: Math.random() * (height - size),
-          width: size,
-          height: size,
-          rotation: Math.random() * 360,
-          speed,
-          rotationSpeed,
-          type,
-          isSpecial: true
-        };
+      try {
+        const { width, height } = gameContainer.getBoundingClientRect();
+        
+        // Для тяжелого уровня используем супербыструю скорость, для остальных - очень быструю
+        const speed = gameState.difficulty === 'hard' ? asteroidSpeeds.superFast : asteroidSpeeds.veryFast;
+        const rotationSpeed = gameState.difficulty === 'hard' ? 4 : 3;
+        
+        const baseSize = 30 + Math.random() * 30;
+        const size = baseSize * 3.5;
+        
+        const type = Math.floor(Math.random() * images.asteroids.length);
+        
+        let specialAsteroid;
+        
+        if (gameState.isMobile) {
+          specialAsteroid = {
+            id: gameState.specialAsteroidId++,
+            x: Math.random() * (width - size),
+            y: -size,
+            width: size,
+            height: size,
+            rotation: Math.random() * 360,
+            speed,
+            rotationSpeed,
+            type,
+            isSpecial: true
+          };
+        } else {
+          specialAsteroid = {
+            id: gameState.specialAsteroidId++,
+            x: width + size,
+            y: Math.random() * (height - size),
+            width: size,
+            height: size,
+            rotation: Math.random() * 360,
+            speed,
+            rotationSpeed,
+            type,
+            isSpecial: true
+          };
+        }
+        
+        gameState.specialAsteroids.push(specialAsteroid);
+        
+        const specialAsteroidElement = document.createElement('div');
+        specialAsteroidElement.className = 'special-asteroid';
+        specialAsteroidElement.id = `special-asteroid-${specialAsteroid.id}`;
+        specialAsteroidElement.style.width = `${specialAsteroid.width}px`;
+        specialAsteroidElement.style.height = `${specialAsteroid.height}px`;
+        specialAsteroidElement.style.left = `${specialAsteroid.x}px`;
+        specialAsteroidElement.style.top = `${specialAsteroid.y}px`;
+        specialAsteroidElement.style.transform = `rotate(${specialAsteroid.rotation}deg)`;
+        specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        gameContainer.appendChild(specialAsteroidElement);
+      } catch (error) {
+        log(`Ошибка при генерации особого астероида: ${error.message}`);
       }
-      
-      gameState.specialAsteroids.push(specialAsteroid);
-      
-      const specialAsteroidElement = document.createElement('div');
-      specialAsteroidElement.className = 'special-asteroid';
-      specialAsteroidElement.id = `special-asteroid-${specialAsteroid.id}`;
-      specialAsteroidElement.style.width = `${specialAsteroid.width}px`;
-      specialAsteroidElement.style.height = `${specialAsteroid.height}px`;
-      specialAsteroidElement.style.left = `${specialAsteroid.x}px`;
-      specialAsteroidElement.style.top = `${specialAsteroid.y}px`;
-      specialAsteroidElement.style.transform = `rotate(${specialAsteroid.rotation}deg)`;
-      specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
-      
-      gameContainer.appendChild(specialAsteroidElement);
     }
 
     function gameLoop(timestamp) {
-      if (!gameState.lastFrameTime) {
+      try {
+        if (!gameState.lastFrameTime) {
+          gameState.lastFrameTime = timestamp;
+        }
+        
+        const deltaTime = timestamp - gameState.lastFrameTime;
         gameState.lastFrameTime = timestamp;
-      }
-      
-      const deltaTime = timestamp - gameState.lastFrameTime;
-      gameState.lastFrameTime = timestamp;
-      
-      gameState.asteroids.forEach(asteroid => {
-        if (gameState.isMobile) {
-          asteroid.y += asteroid.speed;
-        } else {
-          asteroid.x -= asteroid.speed;
-        }
         
-        asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
-        
-        const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
-        if (asteroidElement) {
-          asteroidElement.style.left = `${asteroid.x}px`;
-          asteroidElement.style.top = `${asteroid.y}px`;
-          asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
-          
-          // Remove asteroids that are off-screen
-          if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
-              (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
-            gameContainer.removeChild(asteroidElement);
-            gameState.asteroids = gameState.asteroids.filter(a => a.id !== asteroid.id);
+        gameState.asteroids.forEach(asteroid => {
+          if (gameState.isMobile) {
+            asteroid.y += asteroid.speed;
+          } else {
+            asteroid.x -= asteroid.speed;
           }
-        }
-      });
-      
-      gameState.specialAsteroids.forEach(asteroid => {
-        if (gameState.isMobile) {
-          asteroid.y += asteroid.speed;
-        } else {
-          asteroid.x -= asteroid.speed;
-        }
-        
-        asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
-        
-        const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
-        if (asteroidElement) {
-          asteroidElement.style.left = `${asteroid.x}px`;
-          asteroidElement.style.top = `${asteroid.y}px`;
-          asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
           
-          // Remove special asteroids that are off-screen
-          if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
-              (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
-            gameContainer.removeChild(asteroidElement);
-            gameState.specialAsteroids = gameState.specialAsteroids.filter(a => a.id !== asteroid.id);
+          asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
+          
+          const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
+          if (asteroidElement) {
+            asteroidElement.style.left = `${asteroid.x}px`;
+            asteroidElement.style.top = `${asteroid.y}px`;
+            asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+            
+            // Remove asteroids that are off-screen
+            if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
+                (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
+              gameContainer.removeChild(asteroidElement);
+              gameState.asteroids = gameState.asteroids.filter(a => a.id !== asteroid.id);
+            }
           }
-        }
-      });
-      
-      // Handle landing sequence
-      if (gameState.state === 'landing') {
-        if (gameState.isMobile) {
-          // Move moon towards rocket
-          gameState.moonPosition.y += 0.5;
-          moonElement.style.top = `${gameState.moonPosition.y}px`;
-          
-          // Move rocket towards moon
-          gameState.rocket.y -= 1;
-          rocketElement.style.top = `${gameState.rocket.y}px`;
-          
-          // Check if rocket has reached the moon
-          const rocketTop = gameState.rocket.y;
-          const moonBottom = gameState.moonPosition.y + 150;
-          
-          if (rocketTop <= moonBottom) {
-            // Rocket has reached the moon
-            endGame('win');
-          }
-        } else {
-          // Move moon towards rocket
-          gameState.moonPosition.x -= 0.5;
-          moonElement.style.left = `${gameState.moonPosition.x}px`;
-          
-          // Move rocket towards moon
-          gameState.rocket.x += 1;
-          rocketElement.style.left = `${gameState.rocket.x}px`;
-          
-          // Check if rocket has reached the moon
-          const rocketRight = gameState.rocket.x + gameState.rocket.width;
-          const moonLeft = gameState.moonPosition.x;
-          
-          if (rocketRight >= moonLeft) {
-            // Rocket has reached the moon
-            endGame('win');
-          }
-        }
-      }
-      
-      // Check for collisions
-      if (!gameState.isCollided && (gameState.state === 'playing' || gameState.state === 'landing')) {
-        let rocketHitbox;
-        
-        if (gameState.isMobile) {
-          rocketHitbox = {
-            x: gameState.rocket.x + 18,
-            y: gameState.rocket.y + 37,
-            width: gameState.rocket.width - 37,
-            height: gameState.rocket.height - 75
-          };
-        } else {
-          rocketHitbox = {
-            x: gameState.rocket.x + 37,
-            y: gameState.rocket.y + 18,
-            width: gameState.rocket.width - 75,
-            height: gameState.rocket.height - 37
-          };
-        }
-        
-        // Check collision with regular asteroids
-        const collision = gameState.asteroids.some(asteroid => {
-          return (
-            rocketHitbox.x < asteroid.x + asteroid.width &&
-            rocketHitbox.x + rocketHitbox.width > asteroid.x &&
-            rocketHitbox.y < asteroid.y + asteroid.height &&
-            rocketHitbox.y + rocketHitbox.height > asteroid.y
-          );
         });
         
-        // Check collision with special asteroids
-        const specialCollision = gameState.specialAsteroids.some(asteroid => {
-          return (
-            rocketHitbox.x < asteroid.x + asteroid.width &&
-            rocketHitbox.x + rocketHitbox.width > asteroid.x &&
-            rocketHitbox.y < asteroid.y + asteroid.height &&
-            rocketHitbox.y + rocketHitbox.height > asteroid.y
-          );
+        gameState.specialAsteroids.forEach(asteroid => {
+          if (gameState.isMobile) {
+            asteroid.y += asteroid.speed;
+          } else {
+            asteroid.x -= asteroid.speed;
+          }
+          
+          asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
+          
+          const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
+          if (asteroidElement) {
+            asteroidElement.style.left = `${asteroid.x}px`;
+            asteroidElement.style.top = `${asteroid.y}px`;
+            asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+            
+            // Remove special asteroids that are off-screen
+            if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
+                (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
+              gameContainer.removeChild(asteroidElement);
+              gameState.specialAsteroids = gameState.specialAsteroids.filter(a => a.id !== asteroid.id);
+            }
+          }
         });
         
-        if (collision || specialCollision) {
-          gameState.isCollided = true;
-          
-          const explosionElement = document.createElement('div');
-          explosionElement.className = 'explosion';
-          explosionElement.style.backgroundImage = `url('${getImagePath(images.explosion)}')`;
-          rocketElement.appendChild(explosionElement);
-          
-          setTimeout(() => {
-            endGame('lose');
-          }, 1500);
+        // Handle landing sequence
+        if (gameState.state === 'landing') {
+          if (gameState.isMobile) {
+            // Move moon towards rocket
+            gameState.moonPosition.y += 0.5;
+            moonElement.style.top = `${gameState.moonPosition.y}px`;
+            
+            // Move rocket towards moon
+            gameState.rocket.y -= 1;
+            rocketElement.style.top = `${gameState.rocket.y}px`;
+            
+            // Check if rocket has reached the moon
+            const rocketTop = gameState.rocket.y;
+            const moonBottom = gameState.moonPosition.y + 150;
+            
+            if (rocketTop <= moonBottom) {
+              // Rocket has reached the moon
+              endGame('win');
+            }
+          } else {
+            // Move moon towards rocket
+            gameState.moonPosition.x -= 0.5;
+            moonElement.style.left = `${gameState.moonPosition.x}px`;
+            
+            // Move rocket towards moon
+            gameState.rocket.x += 1;
+            rocketElement.style.left = `${gameState.rocket.x}px`;
+            
+            // Check if rocket has reached the moon
+            const rocketRight = gameState.rocket.x + gameState.rocket.width;
+            const moonLeft = gameState.moonPosition.x;
+            
+            if (rocketRight >= moonLeft) {
+              // Rocket has reached the moon
+              endGame('win');
+            }
+          }
         }
-      }
-      
-      if (gameState.state === 'playing' || gameState.state === 'landing') {
-        gameState.animationId = requestAnimationFrame(gameLoop);
+        
+        // Check for collisions
+        if (!gameState.isCollided && (gameState.state === 'playing' || gameState.state === 'landing')) {
+          let rocketHitbox;
+          
+          if (gameState.isMobile) {
+            rocketHitbox = {
+              x: gameState.rocket.x + 18,
+              y: gameState.rocket.y + 37,
+              width: gameState.rocket.width - 37,
+              height: gameState.rocket.height - 75
+            };
+          } else {
+            rocketHitbox = {
+              x: gameState.rocket.x + 37,
+              y: gameState.rocket.y + 18,
+              width: gameState.rocket.width - 75,
+              height: gameState.rocket.height - 37
+            };
+          }
+          
+          // Check collision with regular asteroids
+          const collision = gameState.asteroids.some(asteroid => {
+            return (
+              rocketHitbox.x < asteroid.x + asteroid.width &&
+              rocketHitbox.x + rocketHitbox.width > asteroid.x &&
+              rocketHitbox.y < asteroid.y + asteroid.height &&
+              rocketHitbox.y + rocketHitbox.height > asteroid.y
+            );
+          });
+          
+          // Check collision with special asteroids
+          const specialCollision = gameState.specialAsteroids.some(asteroid => {
+            return (
+              rocketHitbox.x < asteroid.x + asteroid.width &&
+              rocketHitbox.x + rocketHitbox.width > asteroid.x &&
+              rocketHitbox.y < asteroid.y + asteroid.height &&
+              rocketHitbox.y + rocketHitbox.height > asteroid.y
+            );
+          });
+          
+          if (collision || specialCollision) {
+            gameState.isCollided = true;
+            
+            const explosionElement = document.createElement('div');
+            explosionElement.className = 'explosion';
+            explosionElement.style.backgroundImage = `url('${getImagePath(images.explosion)}')`;
+            rocketElement.appendChild(explosionElement);
+            
+            setTimeout(() => {
+              endGame('lose');
+            }, 1500);
+          }
+        }
+        
+        if (gameState.state === 'playing' || gameState.state === 'landing') {
+          gameState.animationId = requestAnimationFrame(gameLoop);
+        }
+      } catch (error) {
+        log(`Ошибка в игровом цикле: ${error.message}`);
       }
     }
 
     function animateBackground() {
-      if (gameState.isMobile) {
-        gameState.bgPosition -= 0.5;
-        spaceBackground.style.backgroundPosition = `0 ${gameState.bgPosition}px`;
-      } else {
-        gameState.bgPosition -= 0.5;
-        spaceBackground.style.backgroundPosition = `${gameState.bgPosition}px 0`;
-      }
-      
-      requestAnimationFrame(animateBackground);
-    }
-
-    // Обработчики для мыши (ПК)
-    function handleMouseDown(e) {
-      const rect = rocketElement.getBoundingClientRect();
-      
-      if (
-        e.clientX >= rect.left &&
-        e.clientX <= rect.right &&
-        e.clientY >= rect.top &&
-        e.clientY <= rect.bottom &&
-        !gameState.isCollided &&
-        (gameState.state === 'playing' || gameState.state === 'landing')
-      ) {
-        gameState.isDragging = true;
-      }
-    }
-
-    function handleMouseMove(e) {
-      if (gameState.isDragging && !gameState.isCollided) {
-        const { left, top } = gameContainer.getBoundingClientRect();
-        
+      try {
         if (gameState.isMobile) {
-          const newX = e.clientX - left - gameState.rocket.width / 2;
-          const maxX = gameContainer.clientWidth - gameState.rocket.width;
-          const clampedX = Math.max(0, Math.min(newX, maxX));
-          
-          gameState.rocket.x = clampedX;
-          rocketElement.style.left = `${clampedX}px`;
+          gameState.bgPosition -= 0.5;
+          spaceBackground.style.backgroundPosition = `0 ${gameState.bgPosition}px`;
         } else {
-          const newY = e.clientY - top - gameState.rocket.height / 2;
-          const maxY = gameContainer.clientHeight - gameState.rocket.height;
-          const clampedY = Math.max(0, Math.min(newY, maxY));
-          
-          gameState.rocket.y = clampedY;
-          rocketElement.style.top = `${clampedY}px`;
+          gameState.bgPosition -= 0.5;
+          spaceBackground.style.backgroundPosition = `${gameState.bgPosition}px 0`;
         }
-      }
-    }
-
-    function handleMouseUp() {
-      gameState.isDragging = false;
-    }
-
-    // Обработчики для сенсорных экранов (мобильные)
-    let touchStartX = 0;
-    let touchStartY = 0;
-
-    function handleTouchStart(e) {
-      const touch = e.touches[0];
-      touchStartX = touch.clientX;
-      touchStartY = touch.clientY;
-      
-      const rect = rocketElement.getBoundingClientRect();
-      
-      if (
-        touch.clientX >= rect.left &&
-        touch.clientX <= rect.right &&
-        touch.clientY >= rect.top &&
-        touch.clientY <= rect.bottom &&
-        !gameState.isCollided &&
-        (gameState.state === 'playing' || gameState.state === 'landing')
-      ) {
-        gameState.isDragging = true;
-        e.preventDefault(); // Предотвращаем действие по умолчанию только если начали перетаскивание
-      }
-    }
-
-    function handleTouchMove(e) {
-      if (gameState.isDragging && !gameState.isCollided) {
-        e.preventDefault(); // Предотвращаем действие по умолчанию только при перетаскивании
         
-        const touch = e.touches[0];
-        const { left, top } = gameContainer.getBoundingClientRect();
-        
-        if (gameState.isMobile) {
-          const newX = touch.clientX - left - gameState.rocket.width / 2;
-          const maxX = gameContainer.clientWidth - gameState.rocket.width;
-          const clampedX = Math.max(0, Math.min(newX, maxX));
-          
-          gameState.rocket.x = clampedX;
-          rocketElement.style.left = `${clampedX}px`;
-        } else {
-          const newY = touch.clientY - top - gameState.rocket.height / 2;
-          const maxY = gameContainer.clientHeight - gameState.rocket.height;
-          const clampedY = Math.max(0, Math.min(newY, maxY));
-          
-          gameState.rocket.y = clampedY;
-          rocketElement.style.top = `${clampedY}px`;
-        }
+        requestAnimationFrame(animateBackground);
+      } catch (error) {
+        log(`Ошибка при анимации фона: ${error.message}`);
       }
-    }
-
-    function handleTouchEnd() {
-      gameState.isDragging = false;
     }
 
     function endGame(result) {
-      gameState.state = result;
-      gameState.rocketAnimationActive = false;
-      
-      clearInterval(gameState.gameTimer);
-      cancelAnimationFrame(gameState.animationId);
-      
-      gameUI.classList.add('hidden');
-      
-      if (result === 'win') {
-        winScreen.classList.remove('hidden');
-      } else {
-        gameOverScreen.classList.remove('hidden');
+      try {
+        log(`Игра завершена: ${result}`);
+        gameState.state = result;
+        gameState.rocketAnimationActive = false;
+        
+        clearInterval(gameState.gameTimer);
+        cancelAnimationFrame(gameState.animationId);
+        
+        gameUI.classList.add('hidden');
+        
+        if (result === 'win') {
+          winScreen.classList.remove('hidden');
+        } else {
+          gameOverScreen.classList.remove('hidden');
+        }
+        
+        gameState.asteroids.forEach(asteroid => {
+          const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
+          if (asteroidElement) {
+            gameContainer.removeChild(asteroidElement);
+          }
+        });
+        
+        gameState.specialAsteroids.forEach(asteroid => {
+          const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
+          if (asteroidElement) {
+            gameContainer.removeChild(asteroidElement);
+          }
+        });
+        
+        gameState.asteroids = [];
+        gameState.specialAsteroids = [];
+      } catch (error) {
+        log(`Ошибка при завершении игры: ${error.message}`);
       }
-      
-      gameState.asteroids.forEach(asteroid => {
-        const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
-        if (asteroidElement) {
-          gameContainer.removeChild(asteroidElement);
-        }
-      });
-      
-      gameState.specialAsteroids.forEach(asteroid => {
-        const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
-        if (asteroidElement) {
-          gameContainer.removeChild(asteroidElement);
-        }
-      });
-      
-      gameState.asteroids = [];
-      gameState.specialAsteroids = [];
     }
 
     function resetGame() {
-      gameOverScreen.classList.add('hidden');
-      winScreen.classList.add('hidden');
-      
-      rocketElement.classList.add('hidden');
-      moonElement.classList.add('hidden');
-      
-      while (rocketElement.firstChild) {
-        rocketElement.removeChild(rocketElement.firstChild);
+      try {
+        log('Сброс игры');
+        gameOverScreen.classList.add('hidden');
+        winScreen.classList.add('hidden');
+        
+        rocketElement.classList.add('hidden');
+        moonElement.classList.add('hidden');
+        
+        while (rocketElement.firstChild) {
+          rocketElement.removeChild(rocketElement.firstChild);
+        }
+        
+        startScreen.classList.remove('hidden');
+        playButton.style.display = 'block';
+        difficultyContainer.style.display = 'none';
+        
+        gameState.state = 'start';
+        gameState.isCollided = false;
+        gameState.rocketAnimationActive = false;
+        
+        positionRocketInitially();
+      } catch (error) {
+        log(`Ошибка при сбросе игры: ${error.message}`);
       }
-      
-      startScreen.classList.remove('hidden');
-      playButton.style.display = 'block';
-      difficultyContainer.style.display = 'none';
-      
-      gameState.state = 'start';
-      gameState.isCollided = false;
-      gameState.rocketAnimationActive = false;
-      
-      positionRocketInitially();
     }
 
     window.addEventListener('load', init);
