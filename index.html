@@ -95,6 +95,14 @@
       background-color: #2563eb;
     }
     
+    .difficulty-button.easter {
+      background-color: #ec4899;
+    }
+    
+    .difficulty-button.easter:hover {
+      background-color: #db2777;
+    }
+    
     .difficulty-menu {
       position: absolute;
       top: 100%;
@@ -434,7 +442,8 @@
       isLanding: false,
       lastSpecialAsteroidTime: 0,
       rocketAnimationActive: false,
-      isMobile: false
+      isMobile: false,
+      isEasterMode: false // Новое свойство для пасхального режима
     };
 
     const specialAsteroidCounts = {
@@ -473,7 +482,8 @@
         'Screenshot_20250304_170905_Gallery.png',
         'Screenshot_20250304_170906_Gallery.png',
         'Screenshot_20250304_170908_Gallery.png'
-      ]
+      ],
+      easterAsteroid: 'npc_martemyanov.png' // Новое изображение для пасхального режима
     };
 
     const rocketSprites = [];
@@ -542,6 +552,14 @@
           };
         });
 
+        // Загрузка изображения для пасхального режима
+        const easterImg = new Image();
+        easterImg.src = getImagePath(images.easterAsteroid);
+        easterImg.onload = () => log('Пасхальное изображение загружено');
+        easterImg.onerror = (e) => {
+          log(`Ошибка загрузки пасхального изображения: ${e.message || 'неизвестная ошибка'}`);
+        };
+
         const moonImg = new Image();
         moonImg.src = getImagePath(images.moon);
         moonImg.onload = () => log('Луна загружена');
@@ -577,6 +595,10 @@
         
         preloadImages();
         
+        // Переменные для пасхального режима
+        let pressTimer;
+        let isPressing = false;
+        
         // Упрощенные обработчики событий
         function handlePlayButtonClick() {
           log('Кнопка "Играть" нажата');
@@ -588,6 +610,50 @@
           log('Кнопка выбора сложности нажата');
           const isVisible = difficultyMenu.style.display === 'block';
           difficultyMenu.style.display = isVisible ? 'none' : 'block';
+        }
+        
+        // Обработчики для пасхального режима
+        function startPressTimer(e) {
+          if (!isPressing) {
+            isPressing = true;
+            pressTimer = setTimeout(() => {
+              log('Активирован пасхальный режим!');
+              gameState.isEasterMode = true;
+              difficultyButton.textContent = "Пасхальный режим";
+              difficultyButton.classList.add('easter');
+              
+              // Автоматически запускаем игру в пасхальном режиме
+              gameState.difficulty = 'medium'; // Средняя сложность по умолчанию
+              gameState.specialAsteroidsRemaining = specialAsteroidCounts[gameState.difficulty];
+              
+              difficultyDisplay.textContent = "Пасхальная";
+              
+              difficultyMenu.style.display = 'none';
+              startScreen.classList.add('hidden');
+              
+              gameUI.classList.remove('hidden');
+              
+              rocketElement.classList.remove('hidden');
+              updateRocketPosition();
+              
+              if (rocketSprites[0] && rocketSprites[0].complete) {
+                rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
+              } else {
+                rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
+              }
+              
+              startGame();
+            }, 5000); // 5 секунд для активации
+            
+            e.preventDefault();
+          }
+        }
+        
+        function cancelPressTimer() {
+          if (isPressing) {
+            clearTimeout(pressTimer);
+            isPressing = false;
+          }
         }
         
         function handleDifficultyOptionClick(e) {
@@ -624,6 +690,14 @@
         // Добавляем обработчики для всех устройств
         playButton.addEventListener('click', handlePlayButtonClick);
         difficultyButton.addEventListener('click', handleDifficultyButtonClick);
+        
+        // Обработчики для пасхального режима
+        difficultyButton.addEventListener('mousedown', startPressTimer);
+        difficultyButton.addEventListener('touchstart', startPressTimer);
+        difficultyButton.addEventListener('mouseup', cancelPressTimer);
+        difficultyButton.addEventListener('mouseleave', cancelPressTimer);
+        difficultyButton.addEventListener('touchend', cancelPressTimer);
+        difficultyButton.addEventListener('touchcancel', cancelPressTimer);
         
         difficultyOptions.forEach(option => {
           option.addEventListener('click', handleDifficultyOptionClick);
@@ -991,7 +1065,13 @@
         asteroidElement.style.left = `${asteroid.x}px`;
         asteroidElement.style.top = `${asteroid.y}px`;
         asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
-        asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        // Используем пасхальное изображение, если активирован пасхальный режим
+        if (gameState.isEasterMode) {
+          asteroidElement.style.backgroundImage = `url('${getImagePath(images.easterAsteroid)}')`;
+        } else {
+          asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        }
         
         gameContainer.appendChild(asteroidElement);
       } catch (error) {
@@ -1058,7 +1138,13 @@
         specialAsteroidElement.style.left = `${specialAsteroid.x}px`;
         specialAsteroidElement.style.top = `${specialAsteroid.y}px`;
         specialAsteroidElement.style.transform = `rotate(${specialAsteroid.rotation}deg)`;
-        specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        // Используем пасхальное изображение, если активирован пасхальный режим
+        if (gameState.isEasterMode) {
+          specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.easterAsteroid)}')`;
+        } else {
+          specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        }
         
         gameContainer.appendChild(specialAsteroidElement);
       } catch (error) {
@@ -1295,6 +1381,11 @@
         startScreen.classList.remove('hidden');
         playButton.style.display = 'block';
         difficultyContainer.style.display = 'none';
+        
+        // Сбрасываем пасхальный режим при перезапуске
+        gameState.isEasterMode = false;
+        difficultyButton.textContent = "Выбор сложности";
+        difficultyButton.classList.remove('easter');
         
         gameState.state = 'start';
         gameState.isCollided = false;
