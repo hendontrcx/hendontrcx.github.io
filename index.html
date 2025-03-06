@@ -306,10 +306,10 @@
       
       /* Стиль для взрыва на мобильных устройствах */
       .explosion {
-        width: 120%; /* Увеличиваем размер взрыва со 80% до 120% */
-        height: 120%; /* Увеличиваем размер взрыва со 80% до 120% */
-        top: -10%; /* Смещаем взрыв, чтобы он был по центру */
-        left: -10%; /* Смещаем взрыв, чтобы он был по центру */
+        width: 80%; /* Уменьшаем размер взрыва */
+        height: 80%; /* Уменьшаем размер взрыва */
+        top: 10%; /* Центрируем взрыв */
+        left: 10%; /* Центрируем взрыв */
       }
       
       .space-background {
@@ -584,13 +584,10 @@
           difficultyContainer.style.display = 'block';
         }
         
-        function handleDifficultyButtonClick(e) {
+        function handleDifficultyButtonClick() {
           log('Кнопка выбора сложности нажата');
-          // Проверяем, не активирован ли таймер для пасхального режима
-          if (!isPressing) {
-            const isVisible = difficultyMenu.style.display === 'block';
-            difficultyMenu.style.display = isVisible ? 'none' : 'block';
-          }
+          const isVisible = difficultyMenu.style.display === 'block';
+          difficultyMenu.style.display = isVisible ? 'none' : 'block';
         }
         
         function handleDifficultyOptionClick(e) {
@@ -626,58 +623,7 @@
         
         // Добавляем обработчики для всех устройств
         playButton.addEventListener('click', handlePlayButtonClick);
-        
-        // Обработчики для пасхального режима
-        let pressTimer;
-        let isPressing = false;
-        
-        function startPressTimer(e) {
-          if (!isPressing) {
-            isPressing = true;
-            pressTimer = setTimeout(() => {
-              log('Активирован пасхальный режим!');
-              gameState.isEasterMode = true;
-              difficultyButton.textContent = "Пасхальный режим";
-              difficultyButton.classList.add('easter');
-              
-              // Автоматически запускаем игру в пасхальном режиме
-              gameState.difficulty = 'medium'; // Средняя сложность по умолчанию
-              gameState.specialAsteroidsRemaining = specialAsteroidCounts[gameState.difficulty];
-              
-              difficultyDisplay.textContent = "Пасхальная";
-              
-              difficultyMenu.style.display = 'none';
-              startScreen.classList.add('hidden');
-              
-              gameUI.classList.remove('hidden');
-              
-              rocketElement.classList.remove('hidden');
-              updateRocketPosition();
-              
-              if (rocketSprites[0] && rocketSprites[0].complete) {
-                rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
-              } else {
-                rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
-              }
-              
-              startGame();
-            }, 5000); // 5 секунд для активации
-            
-            e.preventDefault(); // Удалите эту строку, она мешает обычному нажатию
-          }
-        }
-        
-        function cancelPressTimer() {
-          clearTimeout(pressTimer);
-          isPressing = false;
-        }
-        
-        difficultyButton.addEventListener('mousedown', startPressTimer);
-        difficultyButton.addEventListener('touchstart', startPressTimer, { passive: false });
-        difficultyButton.addEventListener('mouseup', cancelPressTimer);
-        difficultyButton.addEventListener('mouseleave', cancelPressTimer);
-        difficultyButton.addEventListener('touchend', cancelPressTimer);
-        difficultyButton.addEventListener('touchcancel', cancelPressTimer);
+        difficultyButton.addEventListener('click', handleDifficultyButtonClick);
         
         difficultyOptions.forEach(option => {
           option.addEventListener('click', handleDifficultyOptionClick);
@@ -995,10 +941,10 @@
           rotationSpeed = 4;
         }
         
-        // Уменьшаем размер астероидов для мобильных устройств, но увеличиваем в 1.3 раза от предыдущего
+        // Уменьшаем размер астероидов для мобильных устройств
         let size;
         if (gameState.isMobile) {
-          size = (10 + Math.random() * 10) * 1.3; // Увеличиваем в 1.3 раза
+          size = 10 + Math.random() * 10; // Еще меньший размер для мобильных (было 15 + Math.random() * 15)
         } else {
           size = 30 + Math.random() * 30; // Оригинальный размер для ПК
         }
@@ -1364,4 +1310,3 @@
   </script>
 </body>
 </html>
-
