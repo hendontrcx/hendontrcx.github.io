@@ -346,7 +346,7 @@
     <div class="start-screen" id="start-screen">
       <button class="play-button" id="play-button">Играть</button>
       <div class="difficulty-container" id="difficulty-container" style="position: relative; display: none;">
-        <button class="difficulty-button" id="difficulty-button">Выбери��е сложность</button>
+        <button class="difficulty-button" id="difficulty-button">Выбор сложности</button>
         <div class="difficulty-menu" id="difficulty-menu" style="display: none;">
           <button class="difficulty-option" data-difficulty="easy">Легкая</button>
           <button class="difficulty-option" data-difficulty="medium">Средняя</button>
@@ -951,7 +951,7 @@
         // Уменьшаем размер астероидов для мобильных устройств
         let size;
         if (gameState.isMobile) {
-          size = 15 + Math.random() * 15; // Уменьшенный размер для мобильных
+          size = 10 + Math.random() * 10; // Еще меньший размер для мобильных (было 15 + Math.random() * 15)
         } else {
           size = 30 + Math.random() * 30; // Оригинальный размер для ПК
         }
@@ -1016,8 +1016,8 @@
         
         let baseSize, size;
         if (gameState.isMobile) {
-          baseSize = 15 + Math.random() * 15; // Уменьшенный базовый размер для мобильных
-          size = baseSize * 2; // Уменьшенный множитель для мобильных (было 3.5)
+          baseSize = 10 + Math.random() * 10; // Уменьшенный базовый размер (было 15 + Math.random() * 15)
+          size = baseSize * 1.5; // Уменьшенный множитель для мобильных (было 2)
         } else {
           baseSize = 30 + Math.random() * 30; // Оригинальный размер для ПК
           size = baseSize * 3.5; // Оригинальный множитель для ПК
@@ -1174,12 +1174,12 @@
           let rocketHitbox;
           
           if (gameState.isMobile) {
-            // Обновленный хитбокс для мобильной версии с учетом поворота на 270 градусов
+            // Значительно уменьшенный хитбокс для мобильной версии
             rocketHitbox = {
-              x: gameState.rocket.x + 30, // Корректируем хитбокс
-              y: gameState.rocket.y + 30, // Корректируем хитбокс
-              width: gameState.rocket.width - 60, // Уменьшаем хитбокс
-              height: gameState.rocket.height - 60 // Уменьшаем хитбокс
+              x: gameState.rocket.x + 45, // Увеличиваем отступ с 30 до 45
+              y: gameState.rocket.y + 60, // Увеличиваем отступ с 30 до 60
+              width: gameState.rocket.width - 90, // Уменьшаем ширину хитбокса (было -60)
+              height: gameState.rocket.height - 120 // Уменьшаем высоту хитбокса (было -60)
             };
           } else {
             rocketHitbox = {
