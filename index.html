@@ -316,6 +316,12 @@
         width: 150px;
         height: 150px;
       }
+
+      .play-button, .difficulty-button, .difficulty-option, .end-button {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
     }
   </style>
 </head>
@@ -512,13 +518,38 @@
       
       preloadImages();
       
+      // Добавляем обработчики для сенсорных устройств на кнопки
       playButton.addEventListener('click', handlePlayClick);
+      playButton.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        handlePlayClick();
+      });
+      
       difficultyButton.addEventListener('click', toggleDifficultyMenu);
+      difficultyButton.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        toggleDifficultyMenu();
+      });
+      
       difficultyOptions.forEach(option => {
         option.addEventListener('click', handleDifficultySelect);
+        option.addEventListener('touchend', function(e) {
+          e.preventDefault();
+          handleDifficultySelect(e);
+        });
       });
+      
       restartButton.addEventListener('click', resetGame);
+      restartButton.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        resetGame();
+      });
+      
       okButton.addEventListener('click', resetGame);
+      okButton.addEventListener('touchend', function(e) {
+        e.preventDefault();
+        resetGame();
+      });
       
       if (gameState.isMobile) {
         document.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -1066,8 +1097,6 @@
     let touchStartY = 0;
 
     function handleTouchStart(e) {
-      e.preventDefault();
-      
       const touch = e.touches[0];
       touchStartX = touch.clientX;
       touchStartY = touch.clientY;
@@ -1083,12 +1112,13 @@
         (gameState.state === 'playing' || gameState.state === 'landing')
       ) {
         gameState.isDragging = true;
+        e.preventDefault(); // Предотвращаем действие по умолчанию только если начали перетаскивание
       }
     }
 
     function handleTouchMove(e) {
       if (gameState.isDragging && !gameState.isCollided) {
-        e.preventDefault();
+        e.preventDefault(); // Предотвращаем действие по умолчанию только при перетаскивании
         
         const touch = e.touches[0];
         const { left, top } = gameContainer.getBoundingClientRect();
