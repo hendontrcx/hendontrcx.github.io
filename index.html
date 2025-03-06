@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ракетка - Космическая игра</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+    
+    body {
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+      background-color: #000;
+      color: #fff;
+      width: 100%;
+      height: 100%;
+      position: fixed;
+    }
+    
+    .game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .space-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-repeat: repeat-x;
+      background-size: auto 100%;
+      z-index: 0;
+    }
+    
+    .start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+    
+    .play-button {
+      padding: 16px 32px;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      background-color: #22c55e;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .play-button:hover {
+      background-color: #16a34a;
+    }
+    
+    .difficulty-button {
+      padding: 16px 32px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background-color: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .difficulty-button:hover {
+      background-color: #2563eb;
+    }
+    
+    .difficulty-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      margin-top: 8px;
+      background-color: #1f2937;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .difficulty-option {
+      width: 100%;
+      padding: 8px 16px;
+      text-align: left;
+      color: white;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .difficulty-option:hover {
+      background-color: #374151;
+    }
+    
+    .game-ui {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 20;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    
+    .progress-bar {
+      width: 96px;
+      height: 16px;
+      background-color: #374151;
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background-color: #3b82f6;
+      border-radius: 9999px;
+      transition: width 0.3s;
+    }
+    
+    .rocket {
+      position: absolute;
+      z-index: 10;
+      cursor: grab;
+      width: 300px;
+      height: 150px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: left 0.05s linear;
+    }
+    
+    .rocket:active {
+      cursor: grabbing;
+    }
+    
+    .asteroid {
+      position: absolute;
+      z-index: 5;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
+    .special-asteroid {
+      position: absolute;
+      z-index: 6;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      filter: brightness(1.2) saturate(1.5);
+    }
+    
+    .moon {
+      position: absolute;
+      z-index: 5;
+      width: 200px;
+      height: 200px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
+    .end-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+    
+    .end-message {
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 32px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .end-title {
+      font-size: 32px;
+      font-weight: bold;
+      margin-bottom: 16px;
+    }
+    
+    .end-title.win {
+      color: #22c55e;
+    }
+    
+    .end-title.lose {
+      color: #ef4444;
+    }
+    
+    .end-button {
+      padding: 12px 24px;
+      font-size: 20px;
+      font-weight: bold;
+      color: white;
+      background-color: #3b82f6;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    
+    .end-button:hover {
+      background-color: #2563eb;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .explosion {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
+    .moon-icon {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      margin-right: 4px;
+    }
+    
+    /* Мобильные стили */
+    @media (max-width: 768px) {
+      .play-button {
+        padding: 12px 24px;
+        font-size: 20px;
+      }
+      
+      .difficulty-button {
+        padding: 12px 24px;
+        font-size: 16px;
+      }
+      
+      .game-ui {
+        top: 10px;
+        right: 10px;
+        padding: 6px;
+        gap: 8px;
+        font-size: 14px;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      
+      .progress-bar {
+        width: 80px;
+        height: 12px;
+      }
+      
+      .rocket {
+        width: 150px;
+        height: 300px;
+        transform: rotate(90deg);
+        transform-origin: center;
+      }
+      
+      .space-background {
+        background-repeat: repeat-y;
+        background-size: 100% auto;
+      }
+      
+      .end-message {
+        padding: 20px;
+        max-width: 90%;
+      }
+      
+      .end-title {
+        font-size: 24px;
+      }
+      
+      .end-button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+      
+      .moon {
+        width: 150px;
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="game-container">
+    <div class="space-background" id="space-background"></div>
+    
+    <div class="start-screen" id="start-screen">
+      <button class="play-button" id="play-button">Играть</button>
+      <div class="difficulty-container" id="difficulty-container" style="position: relative; display: none;">
+        <button class="difficulty-button" id="difficulty-button">Выберите сложность</button>
+        <div class="difficulty-menu" id="difficulty-menu" style="display: none;">
+          <button class="difficulty-option" data-difficulty="easy">Легкая</button>
+          <button class="difficulty-option" data-difficulty="medium">Средняя</button>
+          <button class="difficulty-option" data-difficulty="hard">Тяжелая</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="game-ui hidden" id="game-ui">
+      <div>
+        <span>Сложность: </span>
+        <span id="difficulty-display" class="font-bold">Легкая</span>
+      </div>
+      
+      <div style="display: flex; align-items: center;">
+        <span style="margin-right: 8px;">Осталось до</span>
+        <span class="moon-icon" id="moon-icon"></span>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill" style="width: 100%;"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="rocket" class="rocket hidden"></div>
+    <div id="moon" class="moon hidden"></div>
+    
+    <div class="end-screen hidden" id="game-over-screen">
+      <div class="end-message">
+        <h2 class="end-title lose">Вы проиграли</h2>
+        <button class="end-button" id="restart-button">Заново</button>
+      </div>
+    </div>
+    
+    <div class="end-screen hidden" id="win-screen">
+      <div class="end-message">
+        <h2 class="end-title win">Спасибо за игру, человек из Сириуса</h2>
+        <button class="end-button" id="ok-button">Ок</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const gameState = {
+      state: 'start',
+      difficulty: 'easy',
+      timeElapsed: 0,
+      timeRemaining: 60,
+      gameTimer: null,
+      animationId: null,
+      lastFrameTime: 0,
+      rocket: {
+        x: 100,
+        y: 300,
+        width: 300,
+        height: 150,
+        spriteIndex: 0,
+        spriteTimer: 0,
+        spritesLoaded: [false, false, false]
+      },
+      asteroids: [],
+      specialAsteroids: [],
+      asteroidId: 0,
+      specialAsteroidId: 0,
+      specialAsteroidsRemaining: 0,
+      isDragging: false,
+      isCollided: false,
+      showMoon: false,
+      bgPosition: 0,
+      moonPosition: { x: 0, y: 0 },
+      isLanding: false,
+      lastSpecialAsteroidTime: 0,
+      rocketAnimationActive: false,
+      isMobile: false
+    };
+
+    const specialAsteroidCounts = {
+      easy: 2,
+      medium: 6,
+      hard: 18
+    };
+
+    const difficultySettings = {
+      easy: { medium: 20, fast: 50, veryFast: 30, superFast: 0 },
+      medium: { medium: 0, fast: 0, veryFast: 80, superFast: 20 },
+      hard: { medium: 0, fast: 0, veryFast: 0, superFast: 100 }
+    };
+
+    const asteroidSpeeds = {
+      slow: 2,
+      medium: 4,
+      fast: 6,
+      veryFast: 8,
+      superFast: 16  // В 2 раза быстрее, чем "очень быстрая"
+    };
+
+    const images = {
+      spaceBackground: 'abstract-geometric-background-shapes-texture_1194-305431.jpg',
+      rocket: [
+        'Screenshot_20250304_171554_Gallery.png',
+        'Screenshot_20250304_171705_Gallery.png',
+        'Screenshot_20250304_171833_Gallery.png'
+      ],
+      explosion: '54d40aa35dff9355a857c23c14749ca6.gif',
+      moon: 'grey-planet_1308-84132.png',
+      moonIcon: 'simplistic-lunar-surface-illustration_1308-165366.png',
+      asteroids: [
+        'asteroid-space-scene-background_1308-32728.png',
+        'Screenshot_20250304_170852_Gallery.png',
+        'Screenshot_20250304_170905_Gallery.png',
+        'Screenshot_20250304_170906_Gallery.png',
+        'Screenshot_20250304_170908_Gallery.png'
+      ]
+    };
+
+    const rocketSprites = [];
+
+    const gameContainer = document.getElementById('game-container');
+    const spaceBackground = document.getElementById('space-background');
+    const startScreen = document.getElementById('start-screen');
+    const playButton = document.getElementById('play-button');
+    const difficultyContainer = document.getElementById('difficulty-container');
+    const difficultyButton = document.getElementById('difficulty-button');
+    const difficultyMenu = document.getElementById('difficulty-menu');
+    const difficultyOptions = document.querySelectorAll('.difficulty-option');
+    const gameUI = document.getElementById('game-ui');
+    const difficultyDisplay = document.getElementById('difficulty-display');
+    const progressFill = document.getElementById('progress-fill');
+    const rocketElement = document.getElementById('rocket');
+    const moonElement = document.getElementById('moon');
+    const moonIcon = document.getElementById('moon-icon');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const winScreen = document.getElementById('win-screen');
+    const restartButton = document.getElementById('restart-button');
+    const okButton = document.getElementById('ok-button');
+
+    function checkMobile() {
+      return window.matchMedia("(max-width: 768px)").matches;
+    }
+
+    function getImagePath(filename) {
+      return `Raketka.html_resources/${filename}`;
+    }
+
+    function preloadImages() {
+      const bgImg = new Image();
+      bgImg.src = getImagePath(images.spaceBackground);
+      bgImg.onload = () => {
+        spaceBackground.style.backgroundImage = `url('${getImagePath(images.spaceBackground)}')`;
+      };
+      bgImg.onerror = () => console.error('Failed to load background image:', getImagePath(images.spaceBackground));
+
+      images.rocket.forEach((src, index) => {
+        const img = new Image();
+        img.src = getImagePath(src);
+        rocketSprites[index] = img;
+        
+        img.onload = () => {
+          gameState.rocket.spritesLoaded[index] = true;
+        };
+        img.onerror = () => console.error(`Failed to load rocket sprite ${index + 1}:`, getImagePath(src));
+      });
+
+      images.asteroids.forEach((src, index) => {
+        const img = new Image();
+        img.src = getImagePath(src);
+      });
+
+      const moonImg = new Image();
+      moonImg.src = getImagePath(images.moon);
+
+      const moonIconImg = new Image();
+      moonIconImg.src = getImagePath(images.moonIcon);
+      moonIconImg.onload = () => {
+        moonIcon.style.backgroundImage = `url('${getImagePath(images.moonIcon)}')`;
+      };
+
+      const explosionImg = new Image();
+      explosionImg.src = getImagePath(images.explosion);
+    }
+
+    function init() {
+      gameState.isMobile = checkMobile();
+      
+      preloadImages();
+      
+      playButton.addEventListener('click', handlePlayClick);
+      difficultyButton.addEventListener('click', toggleDifficultyMenu);
+      difficultyOptions.forEach(option => {
+        option.addEventListener('click', handleDifficultySelect);
+      });
+      restartButton.addEventListener('click', resetGame);
+      okButton.addEventListener('click', resetGame);
+      
+      if (gameState.isMobile) {
+        document.addEventListener('touchstart', handleTouchStart, { passive: false });
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd);
+      } else {
+        document.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+      
+      window.addEventListener('resize', handleResize);
+      
+      positionRocketInitially();
+      
+      animateBackground();
+    }
+
+    function positionRocketInitially() {
+      const { width, height } = gameContainer.getBoundingClientRect();
+      
+      if (gameState.isMobile) {
+        gameState.rocket.width = 150;
+        gameState.rocket.height = 300;
+        gameState.rocket.x = width / 2 - gameState.rocket.width / 2;
+        gameState.rocket.y = height - gameState.rocket.height - 50;
+      } else {
+        gameState.rocket.width = 300;
+        gameState.rocket.height = 150;
+        gameState.rocket.y = height / 2 - gameState.rocket.height / 2;
+        gameState.rocket.x = 100;
+      }
+    }
+
+    function handleResize() {
+      const wasMobile = gameState.isMobile;
+      gameState.isMobile = checkMobile();
+      
+      if (wasMobile !== gameState.isMobile) {
+        positionRocketInitially();
+        
+        if (gameState.state === 'playing' || gameState.state === 'landing') {
+          updateRocketPosition();
+        }
+      }
+    }
+
+    function updateRocketPosition() {
+      rocketElement.style.left = `${gameState.rocket.x}px`;
+      rocketElement.style.top = `${gameState.rocket.y}px`;
+      
+      if (gameState.isMobile) {
+        rocketElement.style.width = `${gameState.rocket.width}px`;
+        rocketElement.style.height = `${gameState.rocket.height}px`;
+      } else {
+        rocketElement.style.width = `${gameState.rocket.width}px`;
+        rocketElement.style.height = `${gameState.rocket.height}px`;
+      }
+    }
+
+    function handlePlayClick() {
+      playButton.style.display = 'none';
+      difficultyContainer.style.display = 'block';
+    }
+
+    function toggleDifficultyMenu() {
+      const isVisible = difficultyMenu.style.display === 'block';
+      difficultyMenu.style.display = isVisible ? 'none' : 'block';
+    }
+
+    function handleDifficultySelect(e) {
+      const difficulty = e.target.dataset.difficulty;
+      gameState.difficulty = difficulty;
+      
+      gameState.specialAsteroidsRemaining = specialAsteroidCounts[difficulty];
+      
+      difficultyDisplay.textContent = e.target.textContent;
+      
+      difficultyMenu.style.display = 'none';
+      startScreen.classList.add('hidden');
+      
+      gameUI.classList.remove('hidden');
+      
+      rocketElement.classList.remove('hidden');
+      updateRocketPosition();
+      
+      if (rocketSprites[0] && rocketSprites[0].complete) {
+        rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
+      } else {
+        rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
+      }
+      
+      startGame();
+    }
+
+    function startGame() {
+      gameState.state = 'playing';
+      gameState.timeElapsed = 0;
+      gameState.timeRemaining = 60;
+      gameState.asteroids = [];
+      gameState.specialAsteroids = [];
+      gameState.isCollided = false;
+      gameState.showMoon = false;
+      gameState.isLanding = false;
+      gameState.lastSpecialAsteroidTime = 0;
+      
+      if (!gameState.rocketAnimationActive && 
+          gameState.rocket.spritesLoaded.every(loaded => loaded)) {
+        gameState.rocketAnimationActive = true;
+        animateRocketSprite();
+      }
+      
+      gameState.gameTimer = setInterval(() => {
+        gameState.timeElapsed++;
+        gameState.timeRemaining--;
+        
+        progressFill.style.width = `${(gameState.timeRemaining / 60) * 100}%`;
+        
+        if (gameState.timeElapsed >= 55 && !gameState.showMoon) {
+          gameState.showMoon = true;
+          prepareMoonLanding();
+        }
+        
+        if (gameState.timeElapsed >= 60 && !gameState.isLanding) {
+          startLanding();
+        }
+        
+        if (gameState.timeElapsed >= 5 && 
+            gameState.specialAsteroidsRemaining > 0 && 
+            gameState.timeElapsed - gameState.lastSpecialAsteroidTime >= 3 && 
+            Math.random() < 0.15) {
+          generateSpecialAsteroid();
+          gameState.lastSpecialAsteroidTime = gameState.timeElapsed;
+          gameState.specialAsteroidsRemaining--;
+        }
+        
+      }, 1000);
+      
+      setTimeout(() => {
+        const asteroidInterval = setInterval(() => {
+          if (gameState.state === 'playing' || gameState.state === 'landing') {
+            generateAsteroid();
+          } else {
+            clearInterval(asteroidInterval);
+          }
+        }, 800);
+      }, 3000);
+      
+      gameLoop(0);
+    }
+
+    function prepareMoonLanding() {
+      const { width, height } = gameContainer.getBoundingClientRect();
+      
+      if (gameState.isMobile) {
+        moonElement.style.width = '150px';
+        moonElement.style.height = '150px';
+        
+        gameState.moonPosition = {
+          x: width / 2 - 75,
+          y: -150
+        };
+      } else {
+        moonElement.style.width = '200px';
+        moonElement.style.height = '200px';
+        
+        gameState.moonPosition = {
+          x: width + 100,
+          y: gameState.rocket.y
+        };
+      }
+      
+      moonElement.classList.remove('hidden');
+      moonElement.style.backgroundImage = `url('${getImagePath(images.moon)}')`;
+      moonElement.style.left = `${gameState.moonPosition.x}px`;
+      moonElement.style.top = `${gameState.moonPosition.y}px`;
+    }
+
+    function startLanding() {
+      gameState.state = 'landing';
+      gameState.isLanding = true;
+      
+      clearInterval(gameState.gameTimer);
+    }
+
+    function animateRocketSprite() {
+      if ((gameState.state !== 'playing' && gameState.state !== 'landing') || 
+          gameState.isCollided || 
+          !gameState.rocketAnimationActive) {
+        return;
+      }
+      
+      if (gameState.rocket.spritesLoaded.every(loaded => loaded)) {
+        gameState.rocket.spriteIndex = (gameState.rocket.spriteIndex + 1) % rocketSprites.length;
+        
+        if (rocketSprites[gameState.rocket.spriteIndex] && rocketSprites[gameState.rocket.spriteIndex].complete) {
+          rocketElement.style.backgroundImage = `url('${rocketSprites[gameState.rocket.spriteIndex].src}')`;
+        }
+        
+        setTimeout(animateRocketSprite, 300);
+      } else {
+        setTimeout(animateRocketSprite, 100);
+      }
+    }
+
+    function generateAsteroid() {
+      const { width, height } = gameContainer.getBoundingClientRect();
+      
+      const settings = difficultySettings[gameState.difficulty];
+      const rand = Math.random() * 100;
+      
+      let speed;
+      let rotationSpeed;
+      
+      if (rand < settings.medium) {
+        speed = asteroidSpeeds.medium;
+        rotationSpeed = 1;
+      } else if (rand < settings.medium + settings.fast) {
+        speed = asteroidSpeeds.fast;
+        rotationSpeed = 2;
+      } else if (rand < settings.medium + settings.fast + settings.veryFast) {
+        speed = asteroidSpeeds.veryFast;
+        rotationSpeed = 3;
+      } else {
+        speed = asteroidSpeeds.superFast;
+        rotationSpeed = 4;
+      }
+      
+      const size = 30 + Math.random() * 30;
+      
+      const type = Math.floor(Math.random() * images.asteroids.length);
+      
+      let asteroid;
+      
+      if (gameState.isMobile) {
+        asteroid = {
+          id: gameState.asteroidId++,
+          x: Math.random() * (width - size),
+          y: -size,
+          width: size,
+          height: size,
+          rotation: Math.random() * 360,
+          speed,
+          rotationSpeed,
+          type,
+          isSpecial: false
+        };
+      } else {
+        asteroid = {
+          id: gameState.asteroidId++,
+          x: width + size,
+          y: Math.random() * (height - size),
+          width: size,
+          height: size,
+          rotation: Math.random() * 360,
+          speed,
+          rotationSpeed,
+          type,
+          isSpecial: false
+        };
+      }
+      
+      gameState.asteroids.push(asteroid);
+      
+      const asteroidElement = document.createElement('div');
+      asteroidElement.className = 'asteroid';
+      asteroidElement.id = `asteroid-${asteroid.id}`;
+      asteroidElement.style.width = `${asteroid.width}px`;
+      asteroidElement.style.height = `${asteroid.height}px`;
+      asteroidElement.style.left = `${asteroid.x}px`;
+      asteroidElement.style.top = `${asteroid.y}px`;
+      asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+      asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+      
+      gameContainer.appendChild(asteroidElement);
+    }
+
+    function generateSpecialAsteroid() {
+      const { width, height } = gameContainer.getBoundingClientRect();
+      
+      // Для тяжелого уровня используем супербыструю скорость, для остальных - очень быструю
+      const speed = gameState.difficulty === 'hard' ? asteroidSpeeds.superFast : asteroidSpeeds.veryFast;
+      const rotationSpeed = gameState.difficulty === 'hard' ? 4 : 3;
+      
+      const baseSize = 30 + Math.random() * 30;
+      const size = baseSize * 3.5;
+      
+      const type = Math.floor(Math.random() * images.asteroids.length);
+      
+      let specialAsteroid;
+      
+      if (gameState.isMobile) {
+        specialAsteroid = {
+          id: gameState.specialAsteroidId++,
+          x: Math.random() * (width - size),
+          y: -size,
+          width: size,
+          height: size,
+          rotation: Math.random() * 360,
+          speed,
+          rotationSpeed,
+          type,
+          isSpecial: true
+        };
+      } else {
+        specialAsteroid = {
+          id: gameState.specialAsteroidId++,
+          x: width + size,
+          y: Math.random() * (height - size),
+          width: size,
+          height: size,
+          rotation: Math.random() * 360,
+          speed,
+          rotationSpeed,
+          type,
+          isSpecial: true
+        };
+      }
+      
+      gameState.specialAsteroids.push(specialAsteroid);
+      
+      const specialAsteroidElement = document.createElement('div');
+      specialAsteroidElement.className = 'special-asteroid';
+      specialAsteroidElement.id = `special-asteroid-${specialAsteroid.id}`;
+      specialAsteroidElement.style.width = `${specialAsteroid.width}px`;
+      specialAsteroidElement.style.height = `${specialAsteroid.height}px`;
+      specialAsteroidElement.style.left = `${specialAsteroid.x}px`;
+      specialAsteroidElement.style.top = `${specialAsteroid.y}px`;
+      specialAsteroidElement.style.transform = `rotate(${specialAsteroid.rotation}deg)`;
+      specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+      
+      gameContainer.appendChild(specialAsteroidElement);
+    }
+
+    function gameLoop(timestamp) {
+      if (!gameState.lastFrameTime) {
+        gameState.lastFrameTime = timestamp;
+      }
+      
+      const deltaTime = timestamp - gameState.lastFrameTime;
+      gameState.lastFrameTime = timestamp;
+      
+      gameState.asteroids.forEach(asteroid => {
+        if (gameState.isMobile) {
+          asteroid.y += asteroid.speed;
+        } else {
+          asteroid.x -= asteroid.speed;
+        }
+        
+        asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
+        
+        const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
+        if (asteroidElement) {
+          asteroidElement.style.left = `${asteroid.x}px`;
+          asteroidElement.style.top = `${asteroid.y}px`;
+          asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+          
+          // Remove asteroids that are off-screen
+          if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
+              (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
+            gameContainer.removeChild(asteroidElement);
+            gameState.asteroids = gameState.asteroids.filter(a => a.id !== asteroid.id);
+          }
+        }
+      });
+      
+      gameState.specialAsteroids.forEach(asteroid => {
+        if (gameState.isMobile) {
+          asteroid.y += asteroid.speed;
+        } else {
+          asteroid.x -= asteroid.speed;
+        }
+        
+        asteroid.rotation = (asteroid.rotation + asteroid.rotationSpeed) % 360;
+        
+        const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
+        if (asteroidElement) {
+          asteroidElement.style.left = `${asteroid.x}px`;
+          asteroidElement.style.top = `${asteroid.y}px`;
+          asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
+          
+          // Remove special asteroids that are off-screen
+          if ((gameState.isMobile && asteroid.y > gameContainer.clientHeight + asteroid.height) ||
+              (!gameState.isMobile && asteroid.x + asteroid.width < 0)) {
+            gameContainer.removeChild(asteroidElement);
+            gameState.specialAsteroids = gameState.specialAsteroids.filter(a => a.id !== asteroid.id);
+          }
+        }
+      });
+      
+      // Handle landing sequence
+      if (gameState.state === 'landing') {
+        if (gameState.isMobile) {
+          // Move moon towards rocket
+          gameState.moonPosition.y += 0.5;
+          moonElement.style.top = `${gameState.moonPosition.y}px`;
+          
+          // Move rocket towards moon
+          gameState.rocket.y -= 1;
+          rocketElement.style.top = `${gameState.rocket.y}px`;
+          
+          // Check if rocket has reached the moon
+          const rocketTop = gameState.rocket.y;
+          const moonBottom = gameState.moonPosition.y + 150;
+          
+          if (rocketTop <= moonBottom) {
+            // Rocket has reached the moon
+            endGame('win');
+          }
+        } else {
+          // Move moon towards rocket
+          gameState.moonPosition.x -= 0.5;
+          moonElement.style.left = `${gameState.moonPosition.x}px`;
+          
+          // Move rocket towards moon
+          gameState.rocket.x += 1;
+          rocketElement.style.left = `${gameState.rocket.x}px`;
+          
+          // Check if rocket has reached the moon
+          const rocketRight = gameState.rocket.x + gameState.rocket.width;
+          const moonLeft = gameState.moonPosition.x;
+          
+          if (rocketRight >= moonLeft) {
+            // Rocket has reached the moon
+            endGame('win');
+          }
+        }
+      }
+      
+      // Check for collisions
+      if (!gameState.isCollided && (gameState.state === 'playing' || gameState.state === 'landing')) {
+        let rocketHitbox;
+        
+        if (gameState.isMobile) {
+          rocketHitbox = {
+            x: gameState.rocket.x + 18,
+            y: gameState.rocket.y + 37,
+            width: gameState.rocket.width - 37,
+            height: gameState.rocket.height - 75
+          };
+        } else {
+          rocketHitbox = {
+            x: gameState.rocket.x + 37,
+            y: gameState.rocket.y + 18,
+            width: gameState.rocket.width - 75,
+            height: gameState.rocket.height - 37
+          };
+        }
+        
+        // Check collision with regular asteroids
+        const collision = gameState.asteroids.some(asteroid => {
+          return (
+            rocketHitbox.x < asteroid.x + asteroid.width &&
+            rocketHitbox.x + rocketHitbox.width > asteroid.x &&
+            rocketHitbox.y < asteroid.y + asteroid.height &&
+            rocketHitbox.y + rocketHitbox.height > asteroid.y
+          );
+        });
+        
+        // Check collision with special asteroids
+        const specialCollision = gameState.specialAsteroids.some(asteroid => {
+          return (
+            rocketHitbox.x < asteroid.x + asteroid.width &&
+            rocketHitbox.x + rocketHitbox.width > asteroid.x &&
+            rocketHitbox.y < asteroid.y + asteroid.height &&
+            rocketHitbox.y + rocketHitbox.height > asteroid.y
+          );
+        });
+        
+        if (collision || specialCollision) {
+          gameState.isCollided = true;
+          
+          const explosionElement = document.createElement('div');
+          explosionElement.className = 'explosion';
+          explosionElement.style.backgroundImage = `url('${getImagePath(images.explosion)}')`;
+          rocketElement.appendChild(explosionElement);
+          
+          setTimeout(() => {
+            endGame('lose');
+          }, 1500);
+        }
+      }
+      
+      if (gameState.state === 'playing' || gameState.state === 'landing') {
+        gameState.animationId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    function animateBackground() {
+      if (gameState.isMobile) {
+        gameState.bgPosition -= 0.5;
+        spaceBackground.style.backgroundPosition = `0 ${gameState.bgPosition}px`;
+      } else {
+        gameState.bgPosition -= 0.5;
+        spaceBackground.style.backgroundPosition = `${gameState.bgPosition}px 0`;
+      }
+      
+      requestAnimationFrame(animateBackground);
+    }
+
+    // Обработчики для мыши (ПК)
+    function handleMouseDown(e) {
+      const rect = rocketElement.getBoundingClientRect();
+      
+      if (
+        e.clientX >= rect.left &&
+        e.clientX <= rect.right &&
+        e.clientY >= rect.top &&
+        e.clientY <= rect.bottom &&
+        !gameState.isCollided &&
+        (gameState.state === 'playing' || gameState.state === 'landing')
+      ) {
+        gameState.isDragging = true;
+      }
+    }
+
+    function handleMouseMove(e) {
+      if (gameState.isDragging && !gameState.isCollided) {
+        const { left, top } = gameContainer.getBoundingClientRect();
+        
+        if (gameState.isMobile) {
+          const newX = e.clientX - left - gameState.rocket.width / 2;
+          const maxX = gameContainer.clientWidth - gameState.rocket.width;
+          const clampedX = Math.max(0, Math.min(newX, maxX));
+          
+          gameState.rocket.x = clampedX;
+          rocketElement.style.left = `${clampedX}px`;
+        } else {
+          const newY = e.clientY - top - gameState.rocket.height / 2;
+          const maxY = gameContainer.clientHeight - gameState.rocket.height;
+          const clampedY = Math.max(0, Math.min(newY, maxY));
+          
+          gameState.rocket.y = clampedY;
+          rocketElement.style.top = `${clampedY}px`;
+        }
+      }
+    }
+
+    function handleMouseUp() {
+      gameState.isDragging = false;
+    }
+
+    // Обработчики для сенсорных экранов (мобильные)
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    function handleTouchStart(e) {
+      e.preventDefault();
+      
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+      
+      const rect = rocketElement.getBoundingClientRect();
+      
+      if (
+        touch.clientX >= rect.left &&
+        touch.clientX <= rect.right &&
+        touch.clientY >= rect.top &&
+        touch.clientY <= rect.bottom &&
+        !gameState.isCollided &&
+        (gameState.state === 'playing' || gameState.state === 'landing')
+      ) {
+        gameState.isDragging = true;
+      }
+    }
+
+    function handleTouchMove(e) {
+      if (gameState.isDragging && !gameState.isCollided) {
+        e.preventDefault();
+        
+        const touch = e.touches[0];
+        const { left, top } = gameContainer.getBoundingClientRect();
+        
+        if (gameState.isMobile) {
+          const newX = touch.clientX - left - gameState.rocket.width / 2;
+          const maxX = gameContainer.clientWidth - gameState.rocket.width;
+          const clampedX = Math.max(0, Math.min(newX, maxX));
+          
+          gameState.rocket.x = clampedX;
+          rocketElement.style.left = `${clampedX}px`;
+        } else {
+          const newY = touch.clientY - top - gameState.rocket.height / 2;
+          const maxY = gameContainer.clientHeight - gameState.rocket.height;
+          const clampedY = Math.max(0, Math.min(newY, maxY));
+          
+          gameState.rocket.y = clampedY;
+          rocketElement.style.top = `${clampedY}px`;
+        }
+      }
+    }
+
+    function handleTouchEnd() {
+      gameState.isDragging = false;
+    }
+
+    function endGame(result) {
+      gameState.state = result;
+      gameState.rocketAnimationActive = false;
+      
+      clearInterval(gameState.gameTimer);
+      cancelAnimationFrame(gameState.animationId);
+      
+      gameUI.classList.add('hidden');
+      
+      if (result === 'win') {
+        winScreen.classList.remove('hidden');
+      } else {
+        gameOverScreen.classList.remove('hidden');
+      }
+      
+      gameState.asteroids.forEach(asteroid => {
+        const asteroidElement = document.getElementById(`asteroid-${asteroid.id}`);
+        if (asteroidElement) {
+          gameContainer.removeChild(asteroidElement);
+        }
+      });
+      
+      gameState.specialAsteroids.forEach(asteroid => {
+        const asteroidElement = document.getElementById(`special-asteroid-${asteroid.id}`);
+        if (asteroidElement) {
+          gameContainer.removeChild(asteroidElement);
+        }
+      });
+      
+      gameState.asteroids = [];
+      gameState.specialAsteroids = [];
+    }
+
+    function resetGame() {
+      gameOverScreen.classList.add('hidden');
+      winScreen.classList.add('hidden');
+      
+      rocketElement.classList.add('hidden');
+      moonElement.classList.add('hidden');
+      
+      while (rocketElement.firstChild) {
+        rocketElement.removeChild(rocketElement.firstChild);
+      }
+      
+      startScreen.classList.remove('hidden');
+      playButton.style.display = 'block';
+      difficultyContainer.style.display = 'none';
+      
+      gameState.state = 'start';
+      gameState.isCollided = false;
+      gameState.rocketAnimationActive = false;
+      
+      positionRocketInitially();
+    }
+
+    window.addEventListener('load', init);
+  </script>
+</body>
+</html>
+
