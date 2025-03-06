@@ -26,15 +26,7 @@
     }
     
     #debug-info {
-      position: fixed;
-      top: 5px;
-      left: 5px;
-      background: rgba(0,0,0,0.7);
-      padding: 5px;
-      font-size: 12px;
-      z-index: 9999;
-      max-width: 80%;
-      word-wrap: break-word;
+      display: none; /* Скрываем блок с логами */
     }
     
     .game-container {
@@ -312,6 +304,14 @@
         transform-origin: center;
       }
       
+      /* Стиль для взрыва на мобильных устройствах */
+      .explosion {
+        width: 80%; /* Уменьшаем размер взрыва */
+        height: 80%; /* Уменьшаем размер взрыва */
+        top: 10%; /* Центрируем взрыв */
+        left: 10%; /* Центрируем взрыв */
+      }
+      
       .space-background {
         background-repeat: repeat-y;
         background-size: 100% auto;
@@ -389,23 +389,16 @@
   </div>
 
   <script>
-    // Отладочная информация
+    // Отладочная информация - теперь не отображается
     const debugInfo = document.getElementById('debug-info');
     function log(message) {
-      if (debugInfo) {
-        debugInfo.innerHTML += message + '<br>';
-        // Ограничиваем количество строк
-        const lines = debugInfo.innerHTML.split('<br>');
-        if (lines.length > 10) {
-          debugInfo.innerHTML = lines.slice(lines.length - 10).join('<br>');
-        }
-      }
+      // Только логирование в консоль, без отображения на экране
       console.log(message);
     }
     
     // Обработка ошибок
     window.onerror = function(message, source, lineno, colno, error) {
-      log(`Ошибка: ${message} (${source}:${lineno}:${colno})`);
+      console.error(`Ошибка: ${message} (${source}:${lineno}:${colno})`);
       return false;
     };
     
