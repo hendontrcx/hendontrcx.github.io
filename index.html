@@ -637,7 +637,7 @@
           startGame();
         }
         
-        // Обработчик для кнопки выбора сложности - ПОЛНОСТЬЮ ПЕРЕРАБОТАН
+        // Обработчик для кнопки выбора сложности
         difficultyButton.addEventListener('click', function(e) {
           // Если это короткое нажатие (менее 300 мс), то просто переключаем меню
           if (!isPressing || (Date.now() - pressStartTime < 300)) {
@@ -646,32 +646,53 @@
             difficultyMenu.style.display = isVisible ? 'none' : 'block';
           }
         });
-        
-        // Обработчики для длительного нажатия (пасхальный режим)
+
+        // Обработчики для десктопа
         difficultyButton.addEventListener('mousedown', function(e) {
           isPressing = true;
           pressStartTime = Date.now();
-          pressTimer = setTimeout(activateEasterMode, 5000);
+          log('Начато удержание кнопки для пасхального режима (десктоп)');
+          pressTimer = setTimeout(function() {
+            log('Таймер пасхального режима сработал (десктоп)');
+            activateEasterMode();
+          }, 5000);
         });
-        
-        difficultyButton.addEventListener('touchstart', function(e) {
-          isPressing = true;
-          pressStartTime = Date.now();
-          pressTimer = setTimeout(activateEasterMode, 5000);
-        });
-        
-        function cancelPressTimer() {
+
+        document.addEventListener('mouseup', function() {
           if (isPressing) {
+            log('Отпущена кнопка, таймер пасхального режима сброшен (десктоп)');
             clearTimeout(pressTimer);
             isPressing = false;
           }
-        }
-        
-        difficultyButton.addEventListener('mouseup', cancelPressTimer);
-        difficultyButton.addEventListener('mouseleave', cancelPressTimer);
-        difficultyButton.addEventListener('touchend', cancelPressTimer);
-        difficultyButton.addEventListener('touchcancel', cancelPressTimer);
-        
+        });
+
+        // Обработчики для мобильных устройств
+        difficultyButton.addEventListener('touchstart', function(e) {
+          isPressing = true;
+          pressStartTime = Date.now();
+          log('Начато удержание кнопки для пасхального режима (мобильный)');
+          pressTimer = setTimeout(function() {
+            log('Таймер пасхального режима сработал (мобильный)');
+            activateEasterMode();
+          }, 5000);
+        });
+
+        difficultyButton.addEventListener('touchend', function() {
+          if (isPressing) {
+            log('Отпущена кнопка, таймер пасхального режима сброшен (мобильный)');
+            clearTimeout(pressTimer);
+            isPressing = false;
+          }
+        });
+
+        difficultyButton.addEventListener('touchcancel', function() {
+          if (isPressing) {
+            log('Отменено касание, таймер пасхального режима сброшен (мобильный)');
+            clearTimeout(pressTimer);
+            isPressing = false;
+          }
+        });
+
         // Обработчики для опций сложности
         difficultyOptions.forEach(option => {
           option.addEventListener('click', function(e) {
