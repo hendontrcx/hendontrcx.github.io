@@ -95,6 +95,14 @@
       background-color: #2563eb;
     }
     
+    .difficulty-button.easter {
+      background-color: #ec4899;
+    }
+    
+    .difficulty-button.easter:hover {
+      background-color: #db2777;
+    }
+    
     .difficulty-menu {
       position: absolute;
       top: 100%;
@@ -306,10 +314,10 @@
       
       /* Стиль для взрыва на мобильных устройствах */
       .explosion {
-        width: 80%; /* Уменьшаем размер взрыва */
-        height: 80%; /* Уменьшаем размер взрыва */
-        top: 10%; /* Центрируем взрыв */
-        left: 10%; /* Центрируем взрыв */
+        width: 120%; /* Увеличиваем размер взрыва со 80% до 120% */
+        height: 120%; /* Увеличиваем размер взрыва со 80% до 120% */
+        top: -10%; /* Смещаем взрыв, чтобы он был по центру */
+        left: -10%; /* Смещаем взрыв, чтобы он был по центру */
       }
       
       .space-background {
@@ -434,7 +442,8 @@
       isLanding: false,
       lastSpecialAsteroidTime: 0,
       rocketAnimationActive: false,
-      isMobile: false
+      isMobile: false,
+      isEasterMode: false // Пасхальный режим
     };
 
     const specialAsteroidCounts = {
@@ -473,7 +482,8 @@
         'Screenshot_20250304_170905_Gallery.png',
         'Screenshot_20250304_170906_Gallery.png',
         'Screenshot_20250304_170908_Gallery.png'
-      ]
+      ],
+      easterAsteroid: 'npc_martemyanov.png' // Изображение для пасхального режима
     };
 
     const rocketSprites = [];
@@ -542,6 +552,14 @@
           };
         });
 
+        // Загрузка изображения для пасхального режима
+        const easterImg = new Image();
+        easterImg.src = getImagePath(images.easterAsteroid);
+        easterImg.onload = () => log('Пасхальное изображение загружено');
+        easterImg.onerror = (e) => {
+          log(`Ошибка загрузки пасхального изображения: ${e.message || 'неизвестная ошибка'}`);
+        };
+
         const moonImg = new Image();
         moonImg.src = getImagePath(images.moon);
         moonImg.onload = () => log('Луна загружена');
@@ -577,27 +595,30 @@
         
         preloadImages();
         
-        // Упрощенные обработчики событий
-        function handlePlayButtonClick() {
+        // Обработчик для кнопки "Играть"
+        playButton.addEventListener('click', function() {
           log('Кнопка "Играть" нажата');
           playButton.style.display = 'none';
           difficultyContainer.style.display = 'block';
-        }
+        });
         
-        function handleDifficultyButtonClick() {
-          log('Кнопка выбора сложности нажата');
-          const isVisible = difficultyMenu.style.display === 'block';
-          difficultyMenu.style.display = isVisible ? 'none' : 'block';
-        }
+        // Переменные для пасхального режима
+        let pressTimer;
+        let pressStartTime;
+        let isPressing = false;
         
-        function handleDifficultyOptionClick(e) {
-          const difficulty = e.target.dataset.difficulty;
-          log(`Выбрана сложность: ${difficulty}`);
+        // Функция для активации пасхального режима
+        function activateEasterMode() {
+          log('Активирован пасхальный режим!');
+          gameState.isEasterMode = true;
+          difficultyButton.textContent = "Пасхальный режим";
+          difficultyButton.classList.add('easter');
           
-          gameState.difficulty = difficulty;
-          gameState.specialAsteroidsRemaining = specialAsteroidCounts[difficulty];
+          // Автоматически запускаем игру в пасхальном режиме
+          gameState.difficulty = 'medium'; // Средняя сложность по умолчанию
+          gameState.specialAsteroidsRemaining = specialAsteroidCounts[gameState.difficulty];
           
-          difficultyDisplay.textContent = e.target.textContent;
+          difficultyDisplay.textContent = "Пасхальная";
           
           difficultyMenu.style.display = 'none';
           startScreen.classList.add('hidden');
@@ -616,21 +637,73 @@
           startGame();
         }
         
-        function handleRestartButtonClick() {
-          log('Кнопка "Заново" нажата');
-          resetGame();
-        }
-        
-        // Добавляем обработчики для всех устройств
-        playButton.addEventListener('click', handlePlayButtonClick);
-        difficultyButton.addEventListener('click', handleDifficultyButtonClick);
-        
-        difficultyOptions.forEach(option => {
-          option.addEventListener('click', handleDifficultyOptionClick);
+        // Обработчик для кнопки выбора сложности - ПОЛНОСТЬЮ ПЕРЕРАБОТАН
+        difficultyButton.addEventListener('click', function(e) {
+          // Если это короткое нажатие (менее 300 мс), то просто переключаем меню
+          if (!isPressing || (Date.now() - pressStartTime < 300)) {
+            log('Кнопка выбора сложности нажата (короткое нажатие)');
+            const isVisible = difficultyMenu.style.display === 'block';
+            difficultyMenu.style.display = isVisible ? 'none' : 'block';
+          }
         });
         
-        restartButton.addEventListener('click', handleRestartButtonClick);
-        okButton.addEventListener('click', handleRestartButtonClick);
+        // Обработчики для длительного нажатия (пасхальный режим)
+        difficultyButton.addEventListener('mousedown', function(e) {
+          isPressing = true;
+          pressStartTime = Date.now();
+          pressTimer = setTimeout(activateEasterMode, 5000);
+        });
+        
+        difficultyButton.addEventListener('touchstart', function(e) {
+          isPressing = true;
+          pressStartTime = Date.now();
+          pressTimer = setTimeout(activateEasterMode, 5000);
+        });
+        
+        function cancelPressTimer() {
+          if (isPressing) {
+            clearTimeout(pressTimer);
+            isPressing = false;
+          }
+        }
+        
+        difficultyButton.addEventListener('mouseup', cancelPressTimer);
+        difficultyButton.addEventListener('mouseleave', cancelPressTimer);
+        difficultyButton.addEventListener('touchend', cancelPressTimer);
+        difficultyButton.addEventListener('touchcancel', cancelPressTimer);
+        
+        // Обработчики для опций сложности
+        difficultyOptions.forEach(option => {
+          option.addEventListener('click', function(e) {
+            const difficulty = e.target.dataset.difficulty;
+            log(`Выбрана сложность: ${difficulty}`);
+            
+            gameState.difficulty = difficulty;
+            gameState.specialAsteroidsRemaining = specialAsteroidCounts[difficulty];
+            
+            difficultyDisplay.textContent = e.target.textContent;
+            
+            difficultyMenu.style.display = 'none';
+            startScreen.classList.add('hidden');
+            
+            gameUI.classList.remove('hidden');
+            
+            rocketElement.classList.remove('hidden');
+            updateRocketPosition();
+            
+            if (rocketSprites[0] && rocketSprites[0].complete) {
+              rocketElement.style.backgroundImage = `url('${rocketSprites[0].src}')`;
+            } else {
+              rocketElement.style.backgroundImage = `url('${getImagePath(images.rocket[0])}')`;
+            }
+            
+            startGame();
+          });
+        });
+        
+        // Обработчики для кнопок "Заново" и "Ок"
+        restartButton.addEventListener('click', resetGame);
+        okButton.addEventListener('click', resetGame);
         
         // Обработчики для перетаскивания ракеты
         if (gameState.isMobile) {
@@ -941,10 +1014,10 @@
           rotationSpeed = 4;
         }
         
-        // Уменьшаем размер астероидов для мобильных устройств
+        // Уменьшаем размер астероидов для мобильных устройств, но увеличиваем в 1.3 раза от предыдущего
         let size;
         if (gameState.isMobile) {
-          size = 10 + Math.random() * 10; // Еще меньший размер для мобильных (было 15 + Math.random() * 15)
+          size = (10 + Math.random() * 10) * 1.3; // Увеличиваем в 1.3 раза
         } else {
           size = 30 + Math.random() * 30; // Оригинальный размер для ПК
         }
@@ -991,7 +1064,13 @@
         asteroidElement.style.left = `${asteroid.x}px`;
         asteroidElement.style.top = `${asteroid.y}px`;
         asteroidElement.style.transform = `rotate(${asteroid.rotation}deg)`;
-        asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        // Используем пасхальное изображение, если активирован пасхальный режим
+        if (gameState.isEasterMode) {
+          asteroidElement.style.backgroundImage = `url('${getImagePath(images.easterAsteroid)}')`;
+        } else {
+          asteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        }
         
         gameContainer.appendChild(asteroidElement);
       } catch (error) {
@@ -1058,7 +1137,13 @@
         specialAsteroidElement.style.left = `${specialAsteroid.x}px`;
         specialAsteroidElement.style.top = `${specialAsteroid.y}px`;
         specialAsteroidElement.style.transform = `rotate(${specialAsteroid.rotation}deg)`;
-        specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        
+        // Используем пасхальное изображение, если активирован пасхальный режим
+        if (gameState.isEasterMode) {
+          specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.easterAsteroid)}')`;
+        } else {
+          specialAsteroidElement.style.backgroundImage = `url('${getImagePath(images.asteroids[type])}')`;
+        }
         
         gameContainer.appendChild(specialAsteroidElement);
       } catch (error) {
@@ -1296,6 +1381,11 @@
         playButton.style.display = 'block';
         difficultyContainer.style.display = 'none';
         
+        // Сбрасываем пасхальный режим при перезапуске
+        gameState.isEasterMode = false;
+        difficultyButton.textContent = "Выбор сложности";
+        difficultyButton.classList.remove('easter');
+        
         gameState.state = 'start';
         gameState.isCollided = false;
         gameState.rocketAnimationActive = false;
@@ -1310,3 +1400,4 @@
   </script>
 </body>
 </html>
+
